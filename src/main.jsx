@@ -1979,7 +1979,7 @@ export default function App() {
 .nn{font-family:'Literata',serif;font-size:30px;font-weight:700;color:#1b3a5c}
 .ng{font-family:'Literata',serif;font-size:17px;font-weight:600;color:#2874a6;margin-top:6px}
 .nr{font-size:14px;color:#999;font-style:italic;margin-top:2px}.nh{font-size:14px;color:#ccc;margin-top:6px}
-.vlist{padding:10px 24px 28px;display:flex;flex-direction:column;gap:6px}
+.vlist{padding:10px 24px 28px;display:flex;flex-direction:column;gap:12px}
 .vc{background:#fff;border-radius:16px;padding:16px 20px;border:none;box-shadow:0 2px 10px rgba(0,0,0,.04);cursor:pointer;transition:all .25s}
 .vc:active{transform:scale(.99)}.vc:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}.vc.rev{background:#f6fafe;box-shadow:0 2px 14px rgba(30,90,138,.08)}
 .vg{font-family:'Literata',serif;font-size:26px;font-weight:600;color:#1b3a5c}

@@ -1911,7 +1911,7 @@ export default function App() {
 @import url('https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=DM+Sans:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 .root{font-family:'DM Sans',sans-serif;min-height:100vh;background:#f8f6f1;color:#1a1a1a;padding-bottom:88px;font-size:17px;-webkit-tap-highlight-color:transparent}
-.hdr{background:linear-gradient(160deg,#1b3a5c 0%,#1e5a8a 60%,#2874a6 100%);padding:40px 24px 28px;color:#fff;position:relative;overflow:hidden}
+.hdr{background:linear-gradient(160deg,#1b3a5c 0%,#1e5a8a 60%,#2874a6 100%);padding:40px 24px 28px;color:#fff;position:relative;overflow:visible}
 .hdr::before{content:'';position:absolute;top:-40%;right:-20%;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,.06) 0%,transparent 70%);border-radius:50%}
 .hdr-l{font-size:12px;text-transform:uppercase;letter-spacing:3px;opacity:.4;margin-bottom:6px}
 .hdr-t{font-family:'Literata',serif;font-size:28px;font-weight:700;position:relative}
@@ -2106,8 +2106,8 @@ export default function App() {
 .lc-desc{font-size:13px;color:#999;margin-top:2px}
 .lc-num{font-size:13px;color:#bbb;flex-shrink:0}
 .inner-page .hdr{padding:32px 24px 22px}
-.home-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b3a5c;color:#fff;border:none;border-radius:100px;padding:14px 28px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(27,58,92,.3);z-index:100;display:flex;align-items:center;gap:8px}
-.home-btn:active{transform:translateX(-50%) scale(.96)}
+.home-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:32px auto 40px;background:#1b3a5c;color:#fff;border:none;border-radius:100px;padding:14px 28px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(27,58,92,.3)}
+.home-btn:active{transform:scale(.96)}
       
 .dash-quick{display:flex;gap:10px;padding:12px 24px}
 .dq-btn{flex:1;background:#fff;border:none;border-radius:16px;padding:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;transition:all .25s;font-family:'DM Sans',sans-serif}
@@ -2126,8 +2126,7 @@ export default function App() {
 .lc-title{font-family:'Literata',serif;font-size:16px;font-weight:700;color:#1b3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lc-desc{font-size:13px;color:#999;margin-top:2px}
 .lc-num{font-size:13px;color:#bbb;flex-shrink:0}
-.home-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b3a5c;color:#fff;border:none;border-radius:100px;padding:14px 28px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(27,58,92,.3);z-index:100;display:flex;align-items:center;gap:8px}
-.home-btn:active{transform:translateX(-50%) scale(.96)}
+
 
 /* MOBILE-FIRST RESPONSIVE */
 @media(max-width:430px){
@@ -2145,31 +2144,44 @@ export default function App() {
   .group-grid{padding:8px 20px 28px;gap:10px}
 }
 @media(min-width:768px){
-  .root{max-width:680px;margin:0 auto}
+  .root{max-width:900px;margin:0 auto}
   .hdr{border-radius:0 0 28px 28px}
   .vg{font-size:28px}
   .vr{font-size:20px}
   .vp{font-size:22px}
   .st{font-size:32px}
   .rd-gr{font-size:36px}
+  .alpha-grid{grid-template-columns:repeat(6,1fr)}
+  .num-grid{grid-template-columns:repeat(5,1fr)}
+  .group-grid{grid-template-columns:repeat(3,1fr)}
+  .lesson-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .dash-quick{max-width:600px}
 }
 @media(min-width:1024px){
-  .root{max-width:720px}
+  .root{max-width:1100px}
+  .alpha-grid{grid-template-columns:repeat(8,1fr)}
+  .num-grid{grid-template-columns:repeat(6,1fr)}
+  .gex{grid-template-columns:repeat(3,1fr)}
+  .dash-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media(min-width:1440px){
+  .root{max-width:1200px}
+  .lesson-list{grid-template-columns:repeat(3,1fr)}
+  .group-grid{grid-template-columns:repeat(4,1fr)}
+  .alpha-grid{grid-template-columns:repeat(10,1fr)}
 }
 /* Safe area for iPhone notch */
 @supports(padding-top:env(safe-area-inset-top)){
   .hdr{padding-top:calc(40px + env(safe-area-inset-top))}
-  .home-btn{bottom:calc(24px + env(safe-area-inset-bottom))}
 }
 
 
 /* FLOATING DARK MODE TOGGLE — always visible */
-.dark-float{position:fixed;top:16px;right:16px;z-index:200;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;background:#1b3a5c;color:#fbbf24;box-shadow:0 4px 16px rgba(27,58,92,.4)}
-.dark-float:hover{transform:scale(1.1);box-shadow:0 6px 20px rgba(27,58,92,.5)}
-.dark-float:active{transform:scale(.95)}
-.dark .dark-float{background:#fbbf24;color:#0f1419;box-shadow:0 4px 16px rgba(251,191,36,.3)}
-.dark .dark-float:hover{box-shadow:0 6px 20px rgba(251,191,36,.4)}
-@supports(padding-top:env(safe-area-inset-top)){.dark-float{top:calc(16px + env(safe-area-inset-top))}}
+.dark-float{position:absolute;top:50%;right:20px;transform:translateY(-50%);z-index:200;width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;background:rgba(255,255,255,.15);color:#fbbf24;backdrop-filter:blur(8px)}
+.dark-float:hover{transform:translateY(-50%) scale(1.1);background:rgba(255,255,255,.25)}
+.dark-float:active{transform:translateY(-50%) scale(.95)}
+.dark .dark-float{background:rgba(255,255,255,.1);color:#fbbf24}
+.dark .dark-float:hover{background:rgba(255,255,255,.2)}
 
 /* DARK MODE TOGGLE */
 
@@ -2221,6 +2233,7 @@ export default function App() {
         <div className="hdr">
           <div className="hdr-l">Ελληνικά — Grecki A1</div>
           <div className="hdr-t">Γεια σου!</div>
+          <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
         </div>
         <div className="dash-quick">
           <button className="dq-btn" onClick={()=>setView("practice")}>
@@ -2248,6 +2261,7 @@ export default function App() {
         <div className="hdr">
           <button className="hdr-back" onClick={home}>← Strona główna</button>
           <div className="hdr-t"><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:10}}><Dumbbell size={24}/></span>Ćwiczenia</div>
+          <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
         </div>
         <PracticeHub/>
         <button className="home-btn" onClick={home}><Home size={18}/> Strona główna</button>
@@ -2257,6 +2271,7 @@ export default function App() {
         <div className="hdr">
           <button className="hdr-back" onClick={home}>← Strona główna</button>
           <div className="hdr-t"><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:10}}><Library size={24}/></span>Słownik</div>
+          <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
         </div>
         <DictHub/>
         <button className="home-btn" onClick={home}><Home size={18}/> Strona główna</button>
@@ -2266,9 +2281,7 @@ export default function App() {
         <LessonPage lessonId={lessonId} onBack={home}/>
         <button className="home-btn" onClick={home}><Home size={18}/> Strona główna</button>
       </>}
-      <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">
-        {dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}
-      </button>
+
     </div>
   );
 }

@@ -1711,26 +1711,26 @@ function VerbDrillView() {
   return (<div>
     <div className="sh"><h2 className="st">Dryl czasowników</h2><p className="sd">Jak najszybciej podaj formę</p></div>
     <div className="vlist">
-      <div className="vc" style={{textAlign:"center",padding:32}}>
-        <div style={{fontSize:14,color:"#999",marginBottom:8}}>Odmień czasownik:</div>
-        <div style={{fontFamily:"'Literata',serif",fontSize:32,fontWeight:700,color:"#1b3a5c"}}>{v.inf}</div>
-        <div style={{fontSize:16,color:"#999",marginTop:4}}>({v.pl})</div>
-        <div style={{marginTop:20,padding:"12px 24px",background:"rgba(30,90,138,.06)",borderRadius:16,display:"inline-block"}}>
-          <span style={{fontSize:20,fontWeight:700,color:"#2874a6"}}>{p}</span>
+      <div className="vc vc-center">
+        <div className="hint-label">Odmień czasownik:</div>
+        <div className="gr-hero">{v.inf}</div>
+        <div className="sub-label">({v.pl})</div>
+        <div className="person-badge">
+          <span className="gr-person">{p}</span>
         </div>
-        {!show?<div style={{marginTop:24}}><button className="stb active" onClick={()=>setShow(true)}>Pokaż odpowiedź</button></div>
-        :<div style={{marginTop:24}}>
-          <div style={{fontFamily:"'Literata',serif",fontSize:28,fontWeight:700,color:"#4a7c59"}}>{v.forms[p]}</div>
-          <div style={{marginTop:16,display:"flex",gap:8,justifyContent:"center"}}>
+        {!show?<div className="mt-actions"><button className="stb active" onClick={()=>setShow(true)}>Pokaż odpowiedź</button></div>
+        :<div className="mt-actions">
+          <div className="gr-answer">{v.forms[p]}</div>
+          <div className="mt-actions-row">
             <button className="stb" onClick={next}>Następny →</button>
           </div>
         </div>}
       </div>
       <div className="vc">
-        <div style={{fontSize:14,color:"#999",marginBottom:8}}>Pełna koniugacja: {v.inf}</div>
-        {persons.map(pr=><div key={pr} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f4f3ee"}}>
-          <span style={{color:"#999",fontSize:15}}>{pr}</span>
-          <span style={{fontFamily:"'Literata',serif",fontSize:17,fontWeight:600,color:"#1b3a5c"}}>{v.forms[pr]}</span>
+        <div className="hint-label">Pełna koniugacja: {v.inf}</div>
+        {persons.map(pr=><div key={pr} className="conj-row">
+          <span className="conj-row-person">{pr}</span>
+          <span className="conj-row-form">{v.forms[pr]}</span>
         </div>)}
       </div>
     </div>
@@ -1746,11 +1746,11 @@ function WordPatternsView() {
         <div key={i} className={"vc"+(open===i?" rev":"")} onClick={()=>setOpen(open===i?null:i)}>
           <div className="vg">{wp.suffix}</div>
           <div className="vr">= {wp.meaning}</div>
-          {open===i&&<div style={{marginTop:12}}>{wp.examples.map((e,j)=>(
-            <div key={j} style={{padding:"10px 0",borderBottom:j<wp.examples.length-1?"1px solid #f0ede8":"none"}}>
+          {open===i&&<div className="wp-details">{wp.examples.map((e,j)=>(
+            <div key={j} className="wp-example">
               <div className="na-head"><span className="na-gr">{e.gr}</span><span className="na-rom"><R t={e.rom}/></span></div>
               <div className="na-pl">{e.pl}</div>
-              <div style={{fontSize:13,color:"#2874a6",marginTop:2}}>← {e.root}</div>
+              <div className="wp-root">← {e.root}</div>
             </div>
           ))}</div>}
         </div>
@@ -1772,13 +1772,13 @@ function CommonWordsView() {
             <span className="cc-title">{g.title}</span>
             <span className="cc-count">{g.words.length}</span>
           </div>
-          {openGr===gi&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,padding:"6px 0"}}>
+          {openGr===gi&&<div className="cw-grid">
             {g.words.map((w,wi)=>{
               const k=gi+"-"+wi; const isR=rev[k];
-              return <div key={k} className={"nc"+(isR?" rev":"")} onClick={()=>setRev(p=>({...p,[k]:!p[k]}))} style={{minHeight:70}}>
-                <div style={{fontFamily:"'Literata',serif",fontSize:18,fontWeight:700,color:"#1b3a5c"}}>{w.gr}</div>
-                {isR?<><div style={{fontSize:12,color:"#999",fontStyle:"italic"}}><R t={w.rom}/></div><div style={{fontSize:13,color:"#333",fontWeight:500}}>{w.pl}</div></>
-                :<div style={{fontSize:12,color:"#ccc"}}>kliknij</div>}
+              return <div key={k} className={"nc cw-card"+(isR?" rev":"")} onClick={()=>setRev(p=>({...p,[k]:!p[k]}))}>
+                <div className="cw-gr">{w.gr}</div>
+                {isR?<><div className="cw-rom"><R t={w.rom}/></div><div className="cw-pl">{w.pl}</div></>
+                :<div className="cw-hint">kliknij</div>}
               </div>
             })}
           </div>}
@@ -1791,7 +1791,7 @@ function CommonWordsView() {
 function DictHub() {
   const [tab,setTab]=useState("alphabet");
   return (<div>
-    <div className="subtabs" style={{padding:"12px 24px"}}>
+    <div className="subtabs subtabs-inner">
       {[{id:"alphabet",label:"Alfabet",ico:"Αα"},{id:"vocab",label:"Słowa",ico:"📚"},{id:"grammar",label:"Gramatyka",ico:"📐"},{id:"phrases",label:"Wyrażenia",ico:"💬"},{id:"patterns",label:"Wzorce",ico:"🔬"},{id:"common",label:"⭐ Top 400+"}].map(t=>(
         <button key={t.id} className={"stb"+(tab===t.id?" active":"")} onClick={()=>setTab(t.id)}><Ico e={t.ico} size={16}/> {t.label}</button>
       ))}
@@ -1813,14 +1813,14 @@ function LessonPage({lessonId,onBack}) {
   return (<div>
     <div className="sh">
       <button className="back-btn" onClick={onBack}>← Lekcje</button>
-      <h2 className="st"><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:10}}><Ico e={lesson.emoji} size={26}/></span>{lesson.title}</h2>
+      <h2 className="st"><span className="ico-inline"><Ico e={lesson.emoji} size={26}/></span>{lesson.title}</h2>
       <p className="sd">{lesson.desc}</p>
     </div>
     <div className="vlist">
       {lesson.sections.map((s,si)=>(
         <div key={si}>
-          <div style={{fontFamily:"'Literata',serif",fontSize:19,fontWeight:700,color:"#1b3a5c",padding:"18px 0 4px"}}>{s.title}</div>
-          {s.text&&<div style={{fontSize:16,color:"#555",lineHeight:1.6,paddingBottom:2}}>{s.text}</div>}
+          <div className="section-title">{s.title}</div>
+          {s.text&&<div className="section-text">{s.text}</div>}
           {s.catIds&&(()=>{const allItems=s.catIds.flatMap(cid=>{const cat=categories.find(x=>x.id===cid);return cat?cat.phrases:[];});return allItems.map((p,pi)=>{
             const k="l"+lesson.id+"s"+si+"i"+pi; const isR=rev[k];
             return <div key={k} className={"vc"+(isR?" rev":"")} onClick={()=>setRev(pr=>({...pr,[k]:!pr[k]}))}>
@@ -1836,7 +1836,7 @@ function LessonPage({lessonId,onBack}) {
 function PracticeHub() {
   const [mode,setMode]=useState("reading");
   return (<div>
-    <div className="subtabs" style={{padding:"12px 24px"}}>
+    <div className="subtabs subtabs-inner">
       {[{id:"reading",label:"Czytanie",ico:"📖"},{id:"verbs",label:"Odmiana",ico:"📋"},{id:"drill",label:"Dryl",ico:"🔄"},{id:"comp",label:"📝 Teksty"}].map(t=>(
         <button key={t.id} className={"stb"+(mode===t.id?" active":"")} onClick={()=>setMode(t.id)}>{t.label}</button>
       ))}
@@ -1885,7 +1885,7 @@ function PhrasesView() {
   return (<div>
     <div className="sh">
       <button className="back-btn" onClick={()=>setCat(null)}>← {g.title}</button>
-      <h2 className="st"><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:10}}><Ico e={c.icon} size={24}/></span>{c.title}</h2>
+      <h2 className="st"><span className="ico-inline"><Ico e={c.icon} size={24}/></span>{c.title}</h2>
     </div>
     <div className="vlist">{c.phrases.map((p,i)=>{
       const k=c.id+i; const isR=rev[k];
@@ -2073,6 +2073,48 @@ export default function App() {
 .mode-bar{display:flex;align-items:center;gap:8px;padding:6px 24px 14px}
 .mode-label{font-size:15px;color:#999}
 
+/* REUSABLE UTILITY CLASSES */
+.hint-label{font-size:14px;color:#999;margin-bottom:8px}
+.sub-label{font-size:16px;color:#999;margin-top:4px}
+.gr-hero{font-family:'Literata',serif;font-size:32px;font-weight:700;color:#1b3a5c}
+.gr-answer{font-family:'Literata',serif;font-size:28px;font-weight:700;color:#4a7c59}
+.gr-person{font-size:20px;font-weight:700;color:#2874a6}
+.person-badge{margin-top:20px;padding:12px 24px;background:rgba(30,90,138,.06);border-radius:16px;display:inline-block}
+.mt-actions{margin-top:24px}
+.mt-actions-row{margin-top:16px;display:flex;gap:8px;justify-content:center}
+.conj-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f4f3ee}
+.conj-row-person{color:#999;font-size:15px}
+.conj-row-form{font-family:'Literata',serif;font-size:17px;font-weight:600;color:#1b3a5c}
+.wp-root{font-size:13px;color:#2874a6;margin-top:2px}
+.wp-example{padding:10px 0;border-bottom:1px solid #f0ede8}
+.wp-example:last-child{border-bottom:none}
+.wp-details{margin-top:12px}
+.cw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px 0}
+.cw-card{min-height:90px;padding:18px 10px}
+.cw-gr{font-family:'Literata',serif;font-size:22px;font-weight:700;color:#1b3a5c}
+.cw-rom{font-size:15px;color:#999;font-style:italic}
+.cw-pl{font-size:17px;color:#333;font-weight:500}
+.cw-hint{font-size:14px;color:#ccc}
+.ico-inline{display:inline-flex;vertical-align:middle;margin-right:10px}
+.section-title{font-family:'Literata',serif;font-size:19px;font-weight:700;color:#1b3a5c;padding:18px 0 4px}
+.section-text{font-size:16px;color:#555;line-height:1.6;padding-bottom:2px}
+.journey-label{padding:8px 24px 4px}
+.journey-label-text{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#999}
+.vc-center{text-align:center;padding:32px}
+.subtabs-inner{padding:12px 24px}
+
+/* Dark mode for new utility classes */
+.dark .gr-hero,.dark .conj-row-form,.dark .cw-gr,.dark .section-title{color:#e2e8f0}
+.dark .hint-label,.dark .sub-label,.dark .conj-row-person,.dark .cw-rom,.dark .journey-label-text{color:#6b7280}
+.dark .gr-answer{color:#6ee7b7}
+.dark .gr-person{color:#60a5fa}
+.dark .person-badge{background:rgba(147,197,253,.06)}
+.dark .conj-row{border-bottom-color:#1e293b}
+.dark .wp-example{border-bottom-color:#1e293b}
+.dark .wp-root{color:#60a5fa}
+.dark .cw-pl,.dark .section-text{color:#c9cdd3}
+.dark .cw-hint{color:#4a5568}
+
 /* DASHBOARD */
 .dash{padding:8px 20px 40px}
 .dash-section{margin-bottom:24px}
@@ -2245,7 +2287,7 @@ export default function App() {
             <div className="dq-text"><div className="dq-title">Słownik</div><div className="dq-desc">Alfabet, słowa, gramatyka</div></div>
           </button>
         </div>
-        <div style={{padding:"8px 24px 4px"}}><div style={{fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:2,color:"#999"}}>Twoja podróż</div></div>
+        <div className="journey-label"><div className="journey-label-text">Twoja podróż</div></div>
         <div className="lesson-list">
           {lessons.map(l=>(
             <div key={l.id} className="lesson-card" onClick={()=>setView("lesson-"+l.id)}>
@@ -2260,7 +2302,7 @@ export default function App() {
       {view==="practice"&&<>
         <div className="hdr">
           <button className="hdr-back" onClick={home}>← Strona główna</button>
-          <div className="hdr-t"><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:10}}><Dumbbell size={24}/></span>Ćwiczenia</div>
+          <div className="hdr-t"><span className="ico-inline"><Dumbbell size={24}/></span>Ćwiczenia</div>
           <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
         </div>
         <PracticeHub/>
@@ -2270,7 +2312,7 @@ export default function App() {
       {view==="dict"&&<>
         <div className="hdr">
           <button className="hdr-back" onClick={home}>← Strona główna</button>
-          <div className="hdr-t"><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:10}}><Library size={24}/></span>Słownik</div>
+          <div className="hdr-t"><span className="ico-inline"><Library size={24}/></span>Słownik</div>
           <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
         </div>
         <DictHub/>

@@ -1,41 +1,10 @@
-import { useState } from "react";
-import { MessageCircle, User, Coffee, Compass, Users, Sparkles, ShoppingCart, Sun, Heart, Globe, GraduationCap, BookOpen, Dumbbell, Library, Type, BookMarked, Ruler, Languages, Key, Brain, Smile, HelpCircle, Activity, MapPin, Search, Clock, Ban, ThumbsUp, Lightbulb, Link2, PenLine, Star, Eye, Zap, Cloud, Hash, LifeBuoy, CalendarDays, Stethoscope, Plane, ShoppingBag, Sunset, Gift, Flame, Skull, Flag, Swords, Volume2, Table2, RotateCcw, Puzzle, Home, ChevronRight, Moon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw } from "lucide-react";
+import { a2Lessons, a2Dialogues, a2Readers } from "./a2data.js";
+import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
 
-const iconMap = {
-  "👋":MessageCircle,"🙋":User,"☕":Coffee,"🗺️":Compass,"👨‍👩‍👧":Users,
-  "✨":Sparkles,"🛒":ShoppingCart,"🌤️":Sun,"💬":MessageCircle,"❤️":Heart,
-  "🇬🇷":Globe,"🎓":GraduationCap,"📖":BookOpen,"📚":Library,"📋":Table2,
-  "🔄":RotateCcw,"🔬":Puzzle,"⭐":Star,"Αα":Type,"📐":Ruler,
-  "💬":Languages,"🏛️":BookMarked,"🔑":Key,"🧠":Brain,"🙏":Smile,
-  "❓":HelpCircle,"💭":Activity,"☕":Coffee,"🚶":MapPin,"🏪":Search,
-  "⏰":Clock,"🚫":Ban,"❤️":Heart,"💡":Lightbulb,"🔗":Link2,
-  "📖":BookOpen,"💐":Star,"🎭":Smile,"🖼️":Eye,"💬":Zap,
-  "🌤️":Cloud,"🔢":Hash,"🆘":LifeBuoy,"📱":CalendarDays,"🏥":Stethoscope,
-  "✈️":Plane,"🛒":ShoppingBag,"☕":Coffee,"🌅":Sunset,"✨":Sparkles,
-  "💕":Heart,"🍯":Gift,"👨‍👩‍👧":Users,"💑":Heart,"😤":Flame,
-  "🤬":Skull,"😩":Cloud,"⚡":Swords,"🔄":RotateCcw,
-};
-
-const icoColors = {
-  "👋":"#2874a6","🙋":"#7c3aed","☕":"#92400e","🗺️":"#0d9488","👨‍👩‍👧":"#c2410c",
-  "✨":"#d97706","🛒":"#059669","🌤️":"#0284c7","💬":"#6366f1","❤️":"#dc2626",
-  "🇬🇷":"#1e40af","🎓":"#7c2d12","📖":"#2874a6","📚":"#4338ca","📋":"#0891b2",
-  "🔄":"#7c3aed","🔬":"#0d9488","⭐":"#d97706","📐":"#6366f1",
-};
-
-function Ico({e,size,bg}) {
-  const Icon=iconMap[e];
-  const color=icoColors[e]||"#1b3a5c";
-  const s=size||22;
-  if(!Icon) return <span style={{fontSize:s*1.2}}>{e}</span>;
-  if(bg) return <div style={{width:s*2.2,height:s*2.2,borderRadius:s*.6,background:color+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-    <Icon size={s} color={color} strokeWidth={2}/>
-  </div>;
-  return <Icon size={s} color={color} strokeWidth={2}/>;
-}
-
-/* Renders romanization with accented vowels in red instead of á é í ó ú marks */
-const acMap = {'\u00e1':'a','\u00e9':'e','\u00ed':'i','\u00f3':'o','\u00fa':'u','\u00c1':'A','\u00c9':'E','\u00cd':'I','\u00d3':'O','\u00da':'U'};
+/* Romanizacja: akcentowane samogloski na czerwono (znacznik akcentu/wymowy) */
+const acMap = {'á':'a','é':'e','í':'i','ó':'o','ú':'u','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'};
 function R({t}){
   if(!t)return null;
   const parts=[];let buf='',k=0;
@@ -47,7 +16,6 @@ function R({t}){
   return <>{parts}</>;
 }
 
-/* ===== EXISTING DATA (condensed) ===== */
 const alphabet = [
   { upper:"Α",lower:"α",name:"alfa",sound:"a",example:"αγάπη",exRom:"agápi",exPl:"miłość",tip:"jak polskie 'a'" },
   { upper:"Β",lower:"β",name:"wita",sound:"w",example:"βιβλίο",exRom:"wiwlío",exPl:"książka",tip:"jak polskie 'w' — NIE 'b'!" },
@@ -263,7 +231,7 @@ const categories = [
     {gr:"Είμαι στεναχωρημένος/η.",rom:"Íme stenachoriménos/i.",pl:"Jestem smutny/a."},
     {gr:"Είμαι κουρασμένος/η.",rom:"Íme kurazménos/i.",pl:"Jestem zmęczony/a."},
     {gr:"Είμαι θυμωμένος/η.",rom:"Íme thimoménos/i.",pl:"Jestem zły/a. (wściekły)"},
-    {gr:"Είμαι ενθουσιασμένος/η!",rom:"Íme enthusiazmenos/i!",pl:"Jestem podekscytowany/a!"},
+    {gr:"Είμαι ενθουσιασμένος/η!",rom:"Íme enthusiazménos/i!",pl:"Jestem podekscytowany/a!"},
     {gr:"Είμαι αγχωμένος/η.",rom:"Íme anchoménos/i.",pl:"Jestem zestresowany/a."},
     {gr:"Ανησυχώ.",rom:"Anisichó.",pl:"Martwię się."},
     {gr:"Φοβάμαι.",rom:"Fováme.",pl:"Boję się."},
@@ -271,7 +239,7 @@ const categories = [
     {gr:"Χαίρομαι που σε βλέπω!",rom:"Chérome pu se vlépo!",pl:"Cieszę się, że cię widzę!"},
     {gr:"Χαίρομαι πολύ!",rom:"Chérome polí!",pl:"Bardzo się cieszę!"},
     {gr:"Λυπάμαι.",rom:"Lipáme.",pl:"Przykro mi. / Współczuję."},
-    {gr:"Νιώθω καλά / άσχημα.",rom:"Nιótho kalá / áschima.",pl:"Czuję się dobrze / źle."},
+    {gr:"Νιώθω καλά / άσχημα.",rom:"Niótho kalá / áschima.",pl:"Czuję się dobrze / źle."},
     {gr:"Είμαι ερωτευμένος/η.",rom:"Íme eroteménos/i.",pl:"Jestem zakochany/a."},
     {gr:"Περνάω πολύ ωραία!",rom:"Pernáo polí oréa!",pl:"Świetnie się bawię!"},
     {gr:"Τι ωραία!",rom:"Ti oréa!",pl:"Jak pięknie! / Super!"},
@@ -362,14 +330,14 @@ const categories = [
     {gr:"Θα αργήσω λίγο.",rom:"Tha arjíso lígo.",pl:"Trochę się spóźnię."},
   ]},
   { id:"doctor",icon:"🏥",title:"U lekarza",phrases:[
-    {gr:"Δεν νιώθω καλά.",rom:"Den nióth kalá.",pl:"Nie czuję się dobrze."},
+    {gr:"Δεν νιώθω καλά.",rom:"Den niótho kalá.",pl:"Nie czuję się dobrze."},
     {gr:"Πονάει εδώ.",rom:"Ponái edó.",pl:"Boli tutaj."},
     {gr:"Πονάει το κεφάλι μου.",rom:"Ponái to kefáli mu.",pl:"Boli mnie głowa."},
     {gr:"Πονάει η κοιλιά μου.",rom:"Ponái i kiliá mu.",pl:"Boli mnie brzuch."},
     {gr:"Έχω πυρετό.",rom:"Écho piretó.",pl:"Mam gorączkę."},
     {gr:"Έχω αλλεργία σε...",rom:"Écho alerjía se...",pl:"Mam alergię na..."},
     {gr:"Χρειάζομαι γιατρό.",rom:"Chriázome jatró.",pl:"Potrzebuję lekarza."},
-    {gr:"Πού είναι το πιο κοντινό νοσοκομείο;",rom:"Pú íne to pio kondnó nosokomío?",pl:"Gdzie jest najbliższy szpital?"},
+    {gr:"Πού είναι το πιο κοντινό νοσοκομείο;",rom:"Pú íne to pio kondinó nosokomío?",pl:"Gdzie jest najbliższy szpital?"},
     {gr:"Παίρνω φάρμακα για...",rom:"Pérno fármaka jia...",pl:"Biorę leki na..."},
     {gr:"Είμαι έγκυος.",rom:"Íme éngios.",pl:"Jestem w ciąży."},
   ]},
@@ -434,7 +402,7 @@ const categories = [
     {gr:"Σ' αγαπώ.",rom:"S'agapó.",pl:"Kocham cię.",note:"W greckim to bardzo poważne — nie mów zbyt wcześnie"},
     {gr:"Κι εγώ σ' αγαπώ.",rom:"Ki egó s'agapó.",pl:"Ja ciebie też kocham."},
     {gr:"Θέλω να είμαι μαζί σου.",rom:"Thélo na íme mazí su.",pl:"Chcę być z tobą."},
-    {gr:"Είσαι ο,τι πιο σημαντικό στη ζωή μου.",rom:"Íse óti pio simandikó sti zoí mu.",pl:"Jesteś najważniejszą osobą w moim życiu."},
+    {gr:"Είσαι ό,τι πιο σημαντικό στη ζωή μου.",rom:"Íse óti pio simandikó sti zoí mu.",pl:"Jesteś najważniejszą osobą w moim życiu."},
     {gr:"Δεν μπορώ να ζήσω χωρίς εσένα.",rom:"Den boró na zíso chorís eséna.",pl:"Nie mogę żyć bez ciebie.",note:"Grecy są dramatyczni — i to jest OK!"},
     {gr:"Θέλω να μείνω μαζί σου για πάντα.",rom:"Thélo na míno mazí su jia pánda.",pl:"Chcę zostać z tobą na zawsze."},
   ]},
@@ -452,7 +420,7 @@ const categories = [
   { id:"meetfamily",icon:"👨‍👩‍👧",title:"Poznanie rodziny",phrases:[
     {gr:"Χαίρω πολύ, είμαι ο...",rom:"Chéro polí, íme o...",pl:"Bardzo mi miło, jestem...",note:"Do rodziców — formalnie!"},
     {gr:"Ευχαριστώ πολύ για την φιλοξενία σας.",rom:"Efcharistó polí jia tin filoksenía sas.",pl:"Bardzo dziękuję za gościnność.",note:"Φιλοξενία — grecka gościnność — święta sprawa"},
-    {gr:"Είναι πολύ νόστιμο! Ποιος το μαγείρεψε;",rom:"Íne polí nóstimo! Piós to majírpse?",pl:"Jest bardzo smaczne! Kto to ugotował?",note:"ZAWSZE chwal jedzenie matki"},
+    {gr:"Είναι πολύ νόστιμο! Ποιος το μαγείρεψε;",rom:"Íne polí nóstimo! Piós to majírepse?",pl:"Jest bardzo smaczne! Kto to ugotował?",note:"ZAWSZE chwal jedzenie matki"},
     {gr:"Μπορώ να βοηθήσω σε κάτι;",rom:"Boró na voithíso se káti?",pl:"Mogę w czymś pomóc?",note:"Pokaż φιλότιμο — honor i chęć pomocy"},
     {gr:"Η κόρη σας είναι υπέροχη.",rom:"I kóri sas íne ipérohi.",pl:"Wasza córka jest wspaniała."},
     {gr:"Θαυμάζω πολύ τον ελληνικό πολιτισμό.",rom:"Thavmázo polí ton elinikó politizmó.",pl:"Bardzo podziwiam grecką kulturę."},
@@ -535,142 +503,6 @@ const categories = [
 ];
 
 
-/* ===== JOURNEY: Natural learning path ===== */
-const lessons = [
-  { id:1, emoji:"👋", title:"Γεια! — Cześć!", desc:"Pierwsze dźwięki i powitania",
-    sections:[
-      {title:"Zanim zaczniesz",text:"Grecki alfabet wygląda obco, ale wiele liter znasz — Α=a, Ε=e, Ι/Η=i, Ο/Ω=o, Κ=k, Μ=m, Ν=n, Τ=t. Zajrzyj do Alfabetu w Słowniku, żeby przećwiczyć każdą literę."},
-      {title:"Powitania i pożegnania",catIds:["basics"]},
-      {title:"Uprzejmości",catIds:["polite"]},
-      {title:"Pułapki!",text:"Β = 'w' (nie 'b'!), Η = 'i' (nie 'h'!), Ρ = 'r' (nie 'p'!), Υ = 'i' (nie 'y'!). Zapamiętaj te cztery — reszta jest logiczna."},
-    ]},
-  { id:2, emoji:"🙋", title:"Με λένε... — Nazywam się...", desc:"Przedstawianie się i pierwsze pytania",
-    sections:[
-      {title:"Είμαι — najważniejszy czasownik",text:"Είμαι (íme) = jestem. Εσύ είσαι (esí íse) = ty jesteś. Αυτός/ή είναι (aftós/í íne) = on/a jest. Z tym jednym czasownikiem powiesz bardzo dużo."},
-      {title:"Jak się czujesz? Skąd jesteś?",catIds:["state"]},
-      {title:"Jak powiedzieć NIE",text:"Δεν (den) przed czasownikiem = nie. Δεν είμαι = nie jestem, Δεν ξέρω = nie wiem, Δεν καταλαβαίνω = nie rozumiem."},
-      {title:"Podstawowe pytania",catIds:["ask"]},
-    ]},
-  { id:3, emoji:"☕", title:"Στο καφενείο — W kawiarni", desc:"Zamawianie, płacenie, liczby",
-    sections:[
-      {title:"Zamawiasz kawę",text:"Kawiarnia to sala treningowa greckiego. Zamów kawę i od razu ćwiczysz: θα ήθελα (chciałbym) + rodzajnik + rzeczownik."},
-      {title:"W kawiarni",catIds:["cafe"]},
-      {title:"Rodzajniki",text:"ο (o) = męski, η (i) = żeński, το (to) = nijaki. Np. ο καφές, η σαλάτα, το νερό. Pełne tabele w Gramatyce → Rodzajniki."},
-      {title:"Ile to kosztuje?",catIds:["numctx"]},
-    ]},
-  { id:4, emoji:"🗺️", title:"Πού είναι; — Gdzie jest?", desc:"Kierunki, transport, przyimki",
-    sections:[
-      {title:"Ruch i miejsce",catIds:["move"]},
-      {title:"Przyimki — klej zdań",text:"σε = do/w/na, από = z/od, με = z, για = dla/o. Te cztery pokrywają 80% sytuacji. Pełna lista → Słownictwo → Przyimki."},
-      {title:"Czy jest tu blisko...?",catIds:["avail"]},
-      {title:"Na lotnisku",catIds:["airport"]},
-    ]},
-  { id:5, emoji:"👨‍👩‍👧", title:"Η οικογένειά μου — Moja rodzina", desc:"Rodzina, zaimki dzierżawcze",
-    sections:[
-      {title:"Mój, twój, jego",text:"Dzierżawcze idą PO rzeczowniku: το σπίτι μου = dom mój, η μητέρα σου = matka twoja. Tabela → Gramatyka → Zaimki."},
-      {title:"Opisywanie osób i rzeczy",catIds:["describe"]},
-    ]},
-  { id:6, emoji:"✨", title:"Θέλω να... — Chcę...", desc:"Konstrukcja να — klucz do greckiego",
-    sections:[
-      {title:"Najważniejsza reguła",text:"Grecki nie ma bezokolicznika. Zamiast 'chcę iść' mówisz 'chcę ΝΑ idę'. Pełny zestaw → Gramatyka → Να (klej)."},
-      {title:"Kluczowe konstrukcje",catIds:["modal"]},
-      {title:"Wiem, rozumiem, lubię",catIds:["know"]},
-    ]},
-  { id:7, emoji:"🛒", title:"Στην αγορά — Na zakupach", desc:"Kupowanie, przymiotniki",
-    sections:[
-      {title:"Na targu i w sklepie",catIds:["shopping"]},
-      {title:"Przymiotniki",text:"Przymiotnik zmienia się z rodzajem: μεγάλος (m) / μεγάλη (f) / μεγάλο (n). Ucz się parami. Lista → Słownictwo → Przymiotniki."},
-      {title:"Preferencje",catIds:["pref"]},
-    ]},
-  { id:8, emoji:"🌤️", title:"Σήμερα — Dzisiaj", desc:"Pogoda, czas, planowanie dnia",
-    sections:[
-      {title:"Pogoda",text:"Κάνει ζέστη (robi ciepło). Κάνει κρύο (zimno). Βρέχει (pada). Έχει ήλιο (ma słońce)."},
-      {title:"Pogoda",catIds:["weather"]},
-      {title:"Czas i planowanie",catIds:["time"]},
-      {title:"Łączenie zdań",catIds:["connect"]},
-    ]},
-  { id:9, emoji:"💬", title:"Μιλάω — Rozmawiam", desc:"Reakcje, propozycje, ratowanie rozmowy",
-    sections:[
-      {title:"Reakcje — brzmisz jak Grek",catIds:["react"]},
-      {title:"Kiedy nie rozumiesz",catIds:["rescue"]},
-      {title:"Proponujesz",catIds:["suggest"]},
-      {title:"Umawianie się",catIds:["meetup"]},
-    ]},
-  { id:10, emoji:"❤️", title:"Σ' αγαπώ — Kocham cię", desc:"Randki, flirt, uczucia",
-    sections:[
-      {title:"Jak Grecy kochają",text:"Grecy są dramatyczni i poetyccy. Ψυχή μου (moja duszo), ζωή μου (moje życie) — to codzienność."},
-      {title:"Pierwsze podejście",catIds:["approach"]},
-      {title:"Pierwsze randki",catIds:["firstdate"]},
-      {title:"Flirt",catIds:["flirt"]},
-      {title:"Wyrażanie uczuć",catIds:["feelings"]},
-      {title:"Czułe słówka",catIds:["petnames"]},
-    ]},
-  { id:11, emoji:"🇬🇷", title:"Σαν Έλληνας — Jak Grek", desc:"Przekleństwa, nerwy, prawdziwe życie",
-    sections:[
-      {title:"Prawdziwy grecki",text:"Grecki na ulicy to nie grecki z podręcznika."},
-      {title:"Emocje i uczucia",catIds:["emotions"]},
-      {title:"U lekarza",catIds:["doctor"]},
-      {title:"Złość",catIds:["angry"]},
-      {title:"Przekleństwa",catIds:["curse"]},
-      {title:"Μαλάκα — instrukcja",catIds:["malaka"]},
-      {title:"Codzienne nerwy",catIds:["everyday"]},
-    ]},
-  { id:12, emoji:"🎓", title:"Τα κατάφερα! — Dałem radę!", desc:"Złożone zdania, zaawansowane",
-    sections:[
-      {title:"Łączysz wszystko",text:"Masz klocki: να, spójniki, czasy, przyimki. Teraz budujesz złożone wypowiedzi."},
-      {title:"Narracja",catIds:["narrate"]},
-      {title:"Przeczenia",catIds:["neg"]},
-      {title:"Komplementy",catIds:["compliment"]},
-      {title:"Poznanie rodziny",catIds:["meetfamily"]},
-      {title:"Związek",catIds:["relationship"]},
-      {title:"Kłótnie",catIds:["argue"]},
-      {title:"Brawo!",text:"Jesteś gotowy na A1. Ćwicz interaktywnie i zacznij rozmawiać z Grekami. Καλή τύχη!"},
-    ]},
-];
-
-const phraseGroups = [
-  { id:"basics", title:"Podstawy", icon:"🏛️", desc:"Powitania, uprzejmości, pytania", cats:["modal","know","basics","polite","ask","state","react","rescue"] },
-  { id:"situations", title:"Sytuacje", icon:"🗺️", desc:"Kawiarnia, zakupy, lekarz, spotkania", cats:["cafe","move","avail","time","meetup","airport","shopping","doctor","numctx","weather"] },
-  { id:"sentences", title:"Budowa zdań", icon:"✍️", desc:"Szkielety, łączniki, narracja", cats:["describe","neg","pref","suggest","connect","narrate","everyday"] },
-  { id:"life", title:"Emocje", icon:"🌊", desc:"Uczucia, komplementy, nerwy", cats:["compliment","emotions","angry","curse","malaka","argue"] },
-  { id:"love", title:"Miłość", icon:"❤️", desc:"Randki, flirt, związek", cats:["approach","firstdate","flirt","feelings","petnames","meetfamily","relationship"] },
-];
-/* ===== WORD FORMATION PATTERNS ===== */
-const wordPatterns = [
-  {suffix:"-είο",meaning:"miejsce",examples:[
-    {gr:"φαρμακείο",rom:"farmakío",pl:"apteka",root:"φάρμακο (lek)"},
-    {gr:"νοσοκομείο",rom:"nosokomío",pl:"szpital",root:"νόσος (choroba)"},
-    {gr:"μουσείο",rom:"musío",pl:"muzeum",root:"μούσα (muza)"},
-    {gr:"εστιατόριο",rom:"estiatório",pl:"restauracja",root:"εστία (ognisko)"},
-    {gr:"βιβλιοπωλείο",rom:"vivliopolío",pl:"księgarnia",root:"βιβλίο (książka) + πωλώ (sprzedaję)"},
-  ]},
-  {suffix:"-ικός/-ική/-ικό",meaning:"przymiotnik (jaki?)",examples:[
-    {gr:"ελληνικός",rom:"elinikós",pl:"grecki",root:"Έλληνας (Grek)"},
-    {gr:"ρομαντικός",rom:"romantikós",pl:"romantyczny",root:"ρομάντζο"},
-    {gr:"πολιτικός",rom:"politikós",pl:"polityczny",root:"πόλη (miasto)"},
-    {gr:"τουριστικός",rom:"turistikós",pl:"turystyczny",root:"τουρίστας"},
-  ]},
-  {suffix:"-τής/-τρια",meaning:"osoba (kto?)",examples:[
-    {gr:"μαθητής",rom:"mathitís",pl:"uczeń",root:"μαθαίνω (uczę się)"},
-    {gr:"φοιτητής",rom:"fititís",pl:"student",root:"φοιτώ (studiuję)"},
-    {gr:"εργάτης",rom:"ergátis",pl:"pracownik",root:"εργασία (praca)"},
-    {gr:"οδηγητής",rom:"odigitís",pl:"kierowca",root:"οδηγώ (prowadzę)"},
-  ]},
-  {suffix:"-ση",meaning:"czynność abstrakcyjna (co?)",examples:[
-    {gr:"ερώτηση",rom:"erótisi",pl:"pytanie",root:"ερωτώ (pytam)"},
-    {gr:"εξήγηση",rom:"eksígisi",pl:"wyjaśnienie",root:"εξηγώ (wyjaśniam)"},
-    {gr:"κατεύθυνση",rom:"katéfthinsi",pl:"kierunek",root:"κατευθύνω (kieruję)"},
-    {gr:"συγγνώμη",rom:"signómi",pl:"przepraszam",root:"συγ+γνώμη (wspól+zdanie)"},
-  ]},
-  {suffix:"-ίζω",meaning:"robić coś (czasownik)",examples:[
-    {gr:"νομίζω",rom:"nomízo",pl:"myśleć/sądzić",root:"νόμος (prawo/reguła)"},
-    {gr:"οργανίζω",rom:"organízo",pl:"organizować",root:"όργανο (narzędzie)"},
-    {gr:"καθαρίζω",rom:"katharízo",pl:"czyścić",root:"καθαρός (czysty)"},
-    {gr:"ετοιμάζω",rom:"etimázo",pl:"przygotowywać",root:"έτοιμος (gotowy)"},
-  ]},
-];
-
-/* ===== 500 MOST COMMON WORDS — ~80% spoken coverage ===== */
 const commonWordGroups = [
   {title:"Partykuły i łączniki",words:[
     {gr:"και",rom:"ke",pl:"i"},{gr:"να",rom:"na",pl:"żeby/aby"},{gr:"δεν",rom:"den",pl:"nie"},
@@ -772,7 +604,7 @@ const commonWordGroups = [
     {gr:"αγαπώ",rom:"agapó",pl:"kocham"},{gr:"αρέσω",rom:"aréso",pl:"podobam się"},
     {gr:"φοβάμαι",rom:"fováme",pl:"boję się"},{gr:"ελπίζω",rom:"elpízo",pl:"mam nadzieję"},
     {gr:"χαίρομαι",rom:"chérome",pl:"cieszę się"},{gr:"στεναχωριέμαι",rom:"stenachoriéme",pl:"smucę się"},
-    {gr:"νιώθω",rom:"nióth",pl:"czuję"},{gr:"φαίνεται",rom:"fénete",pl:"wydaje się"},
+    {gr:"νιώθω",rom:"niótho",pl:"czuję"},{gr:"φαίνεται",rom:"fénete",pl:"wydaje się"},
     {gr:"ζω",rom:"zo",pl:"żyję"},{gr:"πεθαίνω",rom:"pethéno",pl:"umieram"},
     {gr:"γεννιέμαι",rom:"jeniéme",pl:"rodzę się"},{gr:"παντρεύομαι",rom:"pandrévome",pl:"żenię się"},
   ]},
@@ -788,7 +620,7 @@ const commonWordGroups = [
     {gr:"η ώρα",rom:"i óra",pl:"godzina"},{gr:"ο χρόνος",rom:"o chrónos",pl:"rok/czas"},
     {gr:"η εβδομάδα",rom:"i evdomáda",pl:"tydzień"},{gr:"ο μήνας",rom:"o mínas",pl:"miesiąc"},
     {gr:"το πρωί",rom:"to proí",pl:"rano"},{gr:"το βράδυ",rom:"to vrádi",pl:"wieczór"},
-    {gr:"το μεσημέρι",rom:"to mesimérí",pl:"południe"},
+    {gr:"το μεσημέρι",rom:"to mesiméri",pl:"południe"},
     {gr:"ο τόπος",rom:"o tópos",pl:"miejsce"},{gr:"ο δρόμος",rom:"o drómos",pl:"droga/ulica"},
     {gr:"η πόλη",rom:"i póli",pl:"miasto"},{gr:"η χώρα",rom:"i chóra",pl:"kraj"},
     {gr:"η θάλασσα",rom:"i thálasa",pl:"morze"},{gr:"το βουνό",rom:"to vunó",pl:"góra"},
@@ -860,7 +692,7 @@ const commonWordGroups = [
     {gr:"μηχανή",rom:"michaní",pl:"motocykl"},{gr:"ποδήλατο",rom:"podílato",pl:"rower"},
     {gr:"στάση",rom:"stási",pl:"przystanek"},{gr:"σταθμός",rom:"stathmós",pl:"stacja"},
     {gr:"πτήση",rom:"ptísi",pl:"lot"},{gr:"βαλίτσα",rom:"valítsa",pl:"walizka"},
-    {gr:"διαβατήριο",rom:"diavatírio",pl:"paszport"},{gr:"χάρτης",rom:"cháris",pl:"mapa"},
+    {gr:"διαβατήριο",rom:"diavatírio",pl:"paszport"},{gr:"χάρτης",rom:"chártis",pl:"mapa"},
     {gr:"δωμάτιο",rom:"domátio",pl:"pokój"},{gr:"κλειδί",rom:"klidí",pl:"klucz"},
     {gr:"λογαριασμός",rom:"logariazmós",pl:"rachunek"},{gr:"τιμή",rom:"timí",pl:"cena"},
   ]},
@@ -920,21 +752,10 @@ const commonWordGroups = [
     {gr:"τέσσερα",rom:"tésera",pl:"4"},{gr:"πέντε",rom:"pénde",pl:"5"},{gr:"έξι",rom:"éksi",pl:"6"},
     {gr:"εφτά",rom:"eftá",pl:"7"},{gr:"οχτώ",rom:"ochtó",pl:"8"},{gr:"εννιά",rom:"eniá",pl:"9"},
     {gr:"δέκα",rom:"déka",pl:"10"},{gr:"είκοσι",rom:"íkosi",pl:"20"},{gr:"τριάντα",rom:"triánda",pl:"30"},
-    {gr:"πενήντα",rom:"peínda",pl:"50"},{gr:"εκατό",rom:"ekató",pl:"100"},{gr:"χίλια",rom:"chília",pl:"1000"},
+    {gr:"πενήντα",rom:"penínda",pl:"50"},{gr:"εκατό",rom:"ekató",pl:"100"},{gr:"χίλια",rom:"chília",pl:"1000"},
   ]},
 ];
 
-/* ===== VERB DRILL DATA ===== */
-const drillVerbs = [
-  {inf:"είμαι",pl:"być",forms:{εγώ:"είμαι",εσύ:"είσαι","αυτός/ή":"είναι",εμείς:"είμαστε",εσείς:"είστε","αυτοί/ές":"είναι"}},
-  {inf:"έχω",pl:"mieć",forms:{εγώ:"έχω",εσύ:"έχεις","αυτός/ή":"έχει",εμείς:"έχουμε",εσείς:"έχετε","αυτοί/ές":"έχουν"}},
-  {inf:"θέλω",pl:"chcieć",forms:{εγώ:"θέλω",εσύ:"θέλεις","αυτός/ή":"θέλει",εμείς:"θέλουμε",εσείς:"θέλετε","αυτοί/ές":"θέλουν"}},
-  {inf:"μιλάω",pl:"mówić",forms:{εγώ:"μιλάω",εσύ:"μιλάς","αυτός/ή":"μιλάει",εμείς:"μιλάμε",εσείς:"μιλάτε","αυτοί/ές":"μιλάνε"}},
-  {inf:"μπορώ",pl:"móc",forms:{εγώ:"μπορώ",εσύ:"μπορείς","αυτός/ή":"μπορεί",εμείς:"μπορούμε",εσείς:"μπορείτε","αυτοί/ές":"μπορούν"}},
-  {inf:"πάω",pl:"iść",forms:{εγώ:"πάω",εσύ:"πας","αυτός/ή":"πάει",εμείς:"πάμε",εσείς:"πάτε","αυτοί/ές":"πάνε"}},
-  {inf:"κάνω",pl:"robić",forms:{εγώ:"κάνω",εσύ:"κάνεις","αυτός/ή":"κάνει",εμείς:"κάνουμε",εσείς:"κάνετε","αυτοί/ές":"κάνουν"}},
-  {inf:"ξέρω",pl:"wiedzieć",forms:{εγώ:"ξέρω",εσύ:"ξέρεις","αυτός/ή":"ξέρει",εμείς:"ξέρουμε",εσείς:"ξέρετε","αυτοί/ές":"ξέρουν"}},
-];
 
 const readingLevels = [
   {
@@ -1064,1266 +885,769 @@ const numbers = [
   {n:16,gr:"δεκαέξι",rom:"dekaéksi"},{n:17,gr:"δεκαεφτά",rom:"dekaeftá"},
   {n:18,gr:"δεκαοχτώ",rom:"dekaochtó"},{n:19,gr:"δεκαεννιά",rom:"dekaeniá"},
   {n:20,gr:"είκοσι",rom:"íkosi"},{n:30,gr:"τριάντα",rom:"triánda"},{n:40,gr:"σαράντα",rom:"saránda"},
-  {n:50,gr:"πενήντα",rom:"peнínda"},{n:60,gr:"εξήντα",rom:"eksínda"},{n:70,gr:"εβδομήντα",rom:"evdomínda"},
+  {n:50,gr:"πενήντα",rom:"penínda"},{n:60,gr:"εξήντα",rom:"eksínda"},{n:70,gr:"εβδομήντα",rom:"evdomínda"},
   {n:80,gr:"ογδόντα",rom:"ogdónda"},{n:90,gr:"ενενήντα",rom:"enenínda"},{n:100,gr:"εκατό",rom:"ekató"},
   {n:1000,gr:"χίλια",rom:"chília"},
 ];
 
-const days = [
-  {gr:"Δευτέρα",rom:"Deftéra",pl:"Poniedziałek",short:"Δευ"},{gr:"Τρίτη",rom:"Tríti",pl:"Wtorek",short:"Τρι"},
-  {gr:"Τετάρτη",rom:"Tetárti",pl:"Środa",short:"Τετ"},{gr:"Πέμπτη",rom:"Pémpti",pl:"Czwartek",short:"Πεμ"},
-  {gr:"Παρασκευή",rom:"Paraskeví",pl:"Piątek",short:"Παρ"},{gr:"Σάββατο",rom:"Sávato",pl:"Sobota",short:"Σαβ"},
-  {gr:"Κυριακή",rom:"Kiriakí",pl:"Niedziela",short:"Κυρ"},
-];
 
-const months = [
-  {gr:"Ιανουάριος",rom:"Ianuários",pl:"Styczeń"},{gr:"Φεβρουάριος",rom:"Fevruários",pl:"Luty"},
-  {gr:"Μάρτιος",rom:"Mártios",pl:"Marzec"},{gr:"Απρίλιος",rom:"Aprílios",pl:"Kwiecień"},
-  {gr:"Μάιος",rom:"Máios",pl:"Maj"},{gr:"Ιούνιος",rom:"Iúnios",pl:"Czerwiec"},
-  {gr:"Ιούλιος",rom:"Iúlios",pl:"Lipiec"},{gr:"Αύγουστος",rom:"Ávgustos",pl:"Sierpień"},
-  {gr:"Σεπτέμβριος",rom:"Septémvrios",pl:"Wrzesień"},{gr:"Οκτώβριος",rom:"Októvrios",pl:"Październik"},
-  {gr:"Νοέμβριος",rom:"Noémvrios",pl:"Listopad"},{gr:"Δεκέμβριος",rom:"Dekémvrios",pl:"Grudzień"},
-];
-
-/* ===== PRIORITY 1: Question words, Prepositions, Pronouns, Articles ===== */
-const questionWords = [
-  {gr:"Τι;",rom:"Ti?",pl:"Co? / Jaki?",ex:"Τι θέλεις; = Czego chcesz?"},
-  {gr:"Ποιος/ποια/ποιο;",rom:"Piós/piá/pió?",pl:"Kto? / Który?",ex:"Ποιος είναι; = Kto to jest?"},
-  {gr:"Πού;",rom:"Pú?",pl:"Gdzie?",ex:"Πού μένεις; = Gdzie mieszkasz?"},
-  {gr:"Πότε;",rom:"Póte?",pl:"Kiedy?",ex:"Πότε φεύγεις; = Kiedy wyjeżdżasz?"},
-  {gr:"Πώς;",rom:"Pós?",pl:"Jak?",ex:"Πώς είσαι; = Jak się masz?"},
-  {gr:"Πόσο/πόσα;",rom:"Póso/pósa?",pl:"Ile?",ex:"Πόσο κάνει; = Ile kosztuje?"},
-  {gr:"Γιατί;",rom:"Jiatí?",pl:"Dlaczego?",ex:"Γιατί αργείς; = Dlaczego się spóźniasz?"},
-];
-
-const prepositions = [
-  {gr:"σε",rom:"se",pl:"do / w / na",ex:"Πάω σε σχολείο = Idę do szkoły",note:"Najważniejszy przyimek!"},
-  {gr:"από",rom:"apó",pl:"z / od",ex:"Είμαι από την Πολωνία = Jestem z Polski"},
-  {gr:"με",rom:"me",pl:"z (razem z)",ex:"Πάω με τον φίλο μου = Idę z moim przyjacielem"},
-  {gr:"για",rom:"jia",pl:"dla / o / na",ex:"Αυτό είναι για σένα = To jest dla ciebie"},
-  {gr:"μετά",rom:"metá",pl:"po",ex:"Μετά το φαγητό = Po jedzeniu"},
-  {gr:"πριν",rom:"prin",pl:"przed",ex:"Πριν το μάθημα = Przed lekcją"},
-  {gr:"χωρίς",rom:"chorís",pl:"bez",ex:"Καφέ χωρίς ζάχαρη = Kawa bez cukru"},
-  {gr:"μέχρι",rom:"méchri",pl:"do / aż do",ex:"Μέχρι αύριο = Do jutra"},
-];
-
-const pronounsPersonal = [
-  {person:"ja",gr:"εγώ",rom:"egó",weak:"με (me)",poss:"μου (mu)"},
-  {person:"ty",gr:"εσύ",rom:"esí",weak:"σε (se)",poss:"σου (su)"},
-  {person:"on",gr:"αυτός",rom:"aftós",weak:"τον (ton)",poss:"του (tu)"},
-  {person:"ona",gr:"αυτή",rom:"aftí",weak:"την (tin)",poss:"της (tis)"},
-  {person:"ono",gr:"αυτό",rom:"aftó",weak:"το (to)",poss:"του (tu)"},
-  {person:"my",gr:"εμείς",rom:"emís",weak:"μας (mas)",poss:"μας (mas)"},
-  {person:"wy/Pan",gr:"εσείς",rom:"esís",weak:"σας (sas)",poss:"σας (sas)"},
-  {person:"oni/one",gr:"αυτοί/ές",rom:"aftí/aftés",weak:"τους (tus)",poss:"τους (tus)"},
-];
-
-const naGroups = [
-  { title:"Możliwość, chęć, konieczność", color:"#3b82f6", items:[
-    {gr:"Μπορώ να...",rom:"Boró na...",pl:"mogę...",ex:"Μπορώ να πάω = Mogę iść"},
-    {gr:"Θέλω να...",rom:"Thélo na...",pl:"chcę...",ex:"Θέλω να φάω = Chcę jeść"},
-    {gr:"Πρέπει να...",rom:"Prépi na...",pl:"muszę / powinienem...",ex:"Πρέπει να φύγω = Muszę wyjść"},
-    {gr:"Χρειάζεται να...",rom:"Chriázete na...",pl:"trzeba...",ex:"Χρειάζεται να περιμένω = Trzeba czekać"},
-  ]},
-  { title:"Umiejętność i nauka", color:"#8b5cf6", items:[
-    {gr:"Ξέρω να...",rom:"Kséro na...",pl:"umiem...",ex:"Ξέρω να μαγειρεύω = Umiem gotować"},
-    {gr:"Μαθαίνω να...",rom:"Mathéno na...",pl:"uczę się...",ex:"Μαθαίνω να μιλάω ελληνικά = Uczę się mówić po grecku"},
-  ]},
-  { title:"Próbowanie, zaczynanie, kończenie", color:"#059669", items:[
-    {gr:"Προσπαθώ να...",rom:"Prospathó na...",pl:"próbuję...",ex:"Προσπαθώ να καταλάβω = Próbuję zrozumieć"},
-    {gr:"Αρχίζω να...",rom:"Archízo na...",pl:"zaczynam...",ex:"Αρχίζω να καταλαβαίνω = Zaczynam rozumieć"},
-    {gr:"Σταματάω να...",rom:"Stamatáo na...",pl:"przestaję...",ex:"Σταματάω να καπνίζω = Przestaję palić"},
-    {gr:"Συνεχίζω να...",rom:"Sinechízo na...",pl:"kontynuuję...",ex:"Συνεχίζω να μαθαίνω = Kontynuuję naukę"},
-    {gr:"Τελειώνω να...",rom:"Telióno na...",pl:"kończę...",ex:"Τελειώνω να τρώω = Kończę jeść"},
-  ]},
-  { title:"Emocje wobec działania", color:"#dc2626", items:[
-    {gr:"Μου αρέσει να...",rom:"Mu arési na...",pl:"lubię...",ex:"Μου αρέσει να ταξιδεύω = Lubię podróżować"},
-    {gr:"Προτιμώ να...",rom:"Protimó na...",pl:"wolę...",ex:"Προτιμώ να μείνω σπίτι = Wolę zostać w domu"},
-    {gr:"Φοβάμαι να...",rom:"Fováme na...",pl:"boję się...",ex:"Φοβάμαι να πετάξω = Boję się latać"},
-    {gr:"Βαριέμαι να...",rom:"Variéme na...",pl:"nie chce mi się...",ex:"Βαριέμαι να μαγειρέψω = Nie chce mi się gotować"},
-    {gr:"Ντρέπομαι να...",rom:"Drépome na...",pl:"wstydzę się...",ex:"Ντρέπομαι να μιλήσω = Wstydzę się odezwać"},
-  ]},
-  { title:"Myślenie i decyzje", color:"#0891b2", items:[
-    {gr:"Σκέφτομαι να...",rom:"Skéftome na...",pl:"myślę, żeby...",ex:"Σκέφτομαι να φύγω = Myślę, żeby wyjechać"},
-    {gr:"Αποφασίζω να...",rom:"Apofasízo na...",pl:"decyduję się...",ex:"Αποφάσισα να μείνω = Zdecydowałem, że zostanę"},
-    {gr:"Ελπίζω να...",rom:"Elpízo na...",pl:"mam nadzieję...",ex:"Ελπίζω να έρθεις = Mam nadzieję, że przyjdziesz"},
-  ]},
-  { title:"Pamięć", color:"#ca8a04", items:[
-    {gr:"Θυμάμαι να...",rom:"Thimáme na...",pl:"pamiętam, żeby...",ex:"Θυμάμαι να πάρω φάρμακα = Pamiętam, żeby wziąć leki"},
-    {gr:"Ξεχνάω να...",rom:"Ksechnáo na...",pl:"zapominam...",ex:"Ξεχνάω να κλειδώσω = Zapominam zamykać"},
-  ]},
-  { title:"Να samo — życzenia, cele, okoliczności", color:"#6d28d9", items:[
-    {gr:"Να + czasownik",rom:"Na...",pl:"niech / oby (życzenie/rozkaz)",ex:"Να προσέχεις! = Uważaj! / Να είσαι καλά! = Bądź zdrów!"},
-    {gr:"Για να...",rom:"Jia na...",pl:"żeby / aby (cel)",ex:"Μαθαίνω ελληνικά για να μιλάω στην Ελλάδα = Uczę się greckiego, żeby mówić w Grecji"},
-    {gr:"Χωρίς να...",rom:"Chorís na...",pl:"bez (+ czynność)",ex:"Έφυγε χωρίς να πει τίποτα = Wyszedł bez mówienia czegokolwiek"},
-    {gr:"Πριν να...",rom:"Prin na...",pl:"zanim",ex:"Πριν να φύγεις, πάρε ομπρέλα = Zanim wyjdziesz, weź parasol"},
-    {gr:"Αφού να...",rom:"Afú na...",pl:"po tym jak / skoro",ex:"Αφού φας, πάμε βόλτα = Jak zjesz, chodźmy na spacer"},
-  ]},
-];
-
-const articles = {
-  definite: {
-    title:"Rodzajnik określony (the)",
-    rows:[
-      {c:"Mianownik (kto?)",m:"ο",f:"η",n:"το",mpl:"οι",fpl:"οι",npl:"τα"},
-      {c:"Biernik (kogo?)",m:"τον",f:"τη(ν)",n:"το",mpl:"τους",fpl:"τις",npl:"τα"},
-      {c:"Dopełniacz (czyj?)",m:"του",f:"της",n:"του",mpl:"των",fpl:"των",npl:"των"},
-    ]
-  },
-  indefinite: {
-    title:"Rodzajnik nieokreślony (a/an)",
-    rows:[
-      {c:"Mianownik",m:"ένας",f:"μία/μια",n:"ένα"},
-      {c:"Biernik",m:"έναν",f:"μία/μια",n:"ένα"},
-      {c:"Dopełniacz",m:"ενός",f:"μίας/μιας",n:"ενός"},
-    ]
-  }
-};
-
-/* ===== PRIORITY 4: Directions, Conjunctions, Ordinals ===== */
-const directions = [
-  {gr:"εδώ",rom:"edó",pl:"tutaj"},{gr:"εκεί",rom:"ekí",pl:"tam"},
-  {gr:"δεξιά",rom:"deksiá",pl:"na prawo"},{gr:"αριστερά",rom:"aristerá",pl:"na lewo"},
-  {gr:"ευθεία",rom:"efthía",pl:"prosto"},{gr:"κοντά",rom:"kondá",pl:"blisko"},
-  {gr:"μακριά",rom:"makriá",pl:"daleko"},{gr:"πάνω",rom:"páno",pl:"na górze / w górę"},
-  {gr:"κάτω",rom:"káto",pl:"na dole / w dół"},{gr:"μέσα",rom:"mésa",pl:"wewnątrz"},
-  {gr:"έξω",rom:"ékso",pl:"na zewnątrz"},{gr:"μπροστά",rom:"brostá",pl:"z przodu"},
-  {gr:"πίσω",rom:"píso",pl:"z tyłu"},
-];
-
-const conjunctions = [
-  {gr:"και",rom:"ke",pl:"i",ex:"Εγώ και εσύ = Ja i ty"},
-  {gr:"αλλά",rom:"alá",pl:"ale",ex:"Είναι μικρό αλλά ωραίο = Jest mały ale ładny"},
-  {gr:"ή",rom:"í",pl:"lub / albo",ex:"Καφέ ή τσάι; = Kawa czy herbata?"},
-  {gr:"γιατί / επειδή",rom:"jiatí / epidí",pl:"bo / ponieważ",ex:"Μένω σπίτι γιατί βρέχει = Zostaję w domu bo pada"},
-  {gr:"όταν",rom:"ótan",pl:"kiedy / gdy",ex:"Όταν έρθεις... = Kiedy przyjdziesz..."},
-  {gr:"αν",rom:"an",pl:"jeśli / gdyby",ex:"Αν θέλεις... = Jeśli chcesz..."},
-  {gr:"ότι",rom:"óti",pl:"że",ex:"Νομίζω ότι... = Myślę, że..."},
-  {gr:"ενώ",rom:"enó",pl:"podczas gdy",ex:"Ενώ τρώω... = Podczas gdy jem..."},
-];
-
-const ordinals = [
-  {n:"1.",gr:"πρώτος/η/ο",rom:"prótos",pl:"pierwszy"},{n:"2.",gr:"δεύτερος/η/ο",rom:"défteros",pl:"drugi"},
-  {n:"3.",gr:"τρίτος/η/ο",rom:"trítos",pl:"trzeci"},{n:"4.",gr:"τέταρτος/η/ο",rom:"tétartos",pl:"czwarty"},
-  {n:"5.",gr:"πέμπτος/η/ο",rom:"pémptos",pl:"piąty"},{n:"6.",gr:"έκτος/η/ο",rom:"éktos",pl:"szósty"},
-  {n:"7.",gr:"έβδομος/η/ο",rom:"évdomos",pl:"siódmy"},{n:"8.",gr:"όγδοος/η/ο",rom:"ógdoos",pl:"ósmy"},
-  {n:"9.",gr:"ένατος/η/ο",rom:"énatos",pl:"dziewiąty"},{n:"10.",gr:"δέκατος/η/ο",rom:"dékatos",pl:"dziesiąty"},
-];
-
-const family = [
-  {gr:"η οικογένεια",rom:"i ikojénia",pl:"rodzina"},{gr:"ο πατέρας / ο μπαμπάς",rom:"o patéras / o babás",pl:"ojciec / tata"},
-  {gr:"η μητέρα / η μαμά",rom:"i mitéra / i mamá",pl:"matka / mama"},{gr:"ο αδερφός",rom:"o aderfós",pl:"brat"},
-  {gr:"η αδερφή",rom:"i aderfí",pl:"siostra"},{gr:"ο γιος",rom:"o jiós",pl:"syn"},
-  {gr:"η κόρη",rom:"i kóri",pl:"córka"},{gr:"ο παππούς",rom:"o papús",pl:"dziadek"},
-  {gr:"η γιαγιά",rom:"i jajiá",pl:"babcia"},{gr:"ο θείος",rom:"o thíos",pl:"wujek"},
-  {gr:"η θεία",rom:"i thía",pl:"ciocia"},{gr:"ο σύζυγος / η σύζυγος",rom:"o sízigos / i sízigos",pl:"mąż / żona"},
-  {gr:"το μωρό",rom:"to moró",pl:"niemowlę"},{gr:"ο/η ξάδερφος/η",rom:"o/i ksáderfos/i",pl:"kuzyn/ka"},
-];
-
-const food = [
-  {gr:"το ψωμί",rom:"to psomí",pl:"chleb"},{gr:"το τυρί",rom:"to tirí",pl:"ser"},
-  {gr:"το κρέας",rom:"to kréas",pl:"mięso"},{gr:"το κοτόπουλο",rom:"to kotópulo",pl:"kurczak"},
-  {gr:"το ψάρι",rom:"to psári",pl:"ryba"},{gr:"η σαλάτα",rom:"i saláta",pl:"sałatka"},
-  {gr:"το ρύζι",rom:"to rízi",pl:"ryż"},{gr:"τα ζυμαρικά",rom:"ta zimariká",pl:"makaron"},
-  {gr:"το αυγό",rom:"to avgó",pl:"jajko"},{gr:"τα φρούτα",rom:"ta frúta",pl:"owoce"},
-  {gr:"τα λαχανικά",rom:"ta lachaniká",pl:"warzywa"},{gr:"η ντομάτα",rom:"i domáta",pl:"pomidor"},
-  {gr:"το κρασί",rom:"to krasí",pl:"wino"},{gr:"η μπίρα",rom:"i bíra",pl:"piwo"},
-  {gr:"ο χυμός",rom:"o chimós",pl:"sok"},{gr:"το παγωτό",rom:"to pagotó",pl:"lody"},
-  {gr:"το σουβλάκι",rom:"to suvláki",pl:"souvlaki"},{gr:"η μουσακάς",rom:"i musakás",pl:"musaka"},
-];
-
-const colors = [
-  {gr:"κόκκινο",rom:"kókino",pl:"czerwony"},{gr:"μπλε",rom:"ble",pl:"niebieski"},
-  {gr:"πράσινο",rom:"prásino",pl:"zielony"},{gr:"κίτρινο",rom:"kítrino",pl:"żółty"},
-  {gr:"άσπρο / λευκό",rom:"áspro / lefkó",pl:"biały"},{gr:"μαύρο",rom:"mávro",pl:"czarny"},
-  {gr:"πορτοκαλί",rom:"portokalí",pl:"pomarańczowy"},{gr:"ροζ",rom:"roz",pl:"różowy"},
-  {gr:"γκρι",rom:"gri",pl:"szary"},{gr:"μοβ",rom:"mov",pl:"fioletowy"},
-  {gr:"καφέ",rom:"kafé",pl:"brązowy"},
-];
-
-const bodyParts = [
-  {gr:"το κεφάλι",rom:"to kefáli",pl:"głowa"},{gr:"τα μάτια",rom:"ta mátia",pl:"oczy"},
-  {gr:"η μύτη",rom:"i míti",pl:"nos"},{gr:"το στόμα",rom:"to stóma",pl:"usta"},
-  {gr:"τα αυτιά",rom:"ta aftiá",pl:"uszy"},{gr:"τα μαλλιά",rom:"ta maliá",pl:"włosy"},
-  {gr:"το χέρι",rom:"to chéri",pl:"ręka/dłoń"},{gr:"το πόδι",rom:"to pódi",pl:"noga/stopa"},
-  {gr:"η πλάτη",rom:"i pláti",pl:"plecy"},{gr:"η κοιλιά",rom:"i kiliá",pl:"brzuch"},
-  {gr:"το δάχτυλο",rom:"to dáchtilo",pl:"palec"},{gr:"η καρδιά",rom:"i kardiá",pl:"serce"},
-];
-
-const homeItems = [
-  {gr:"το δωμάτιο",rom:"to domátio",pl:"pokój"},{gr:"η κουζίνα",rom:"i kuzína",pl:"kuchnia"},
-  {gr:"το μπάνιο",rom:"to bánio",pl:"łazienka"},{gr:"η τουαλέτα",rom:"i tualéta",pl:"toaleta"},
-  {gr:"το κρεβάτι",rom:"to kreváti",pl:"łóżko"},{gr:"η καρέκλα",rom:"i karékla",pl:"krzesło"},
-  {gr:"το τραπέζι",rom:"to trapézi",pl:"stół"},{gr:"το παράθυρο",rom:"to paráthiro",pl:"okno"},
-  {gr:"η πόρτα",rom:"i pórta",pl:"drzwi"},{gr:"η τηλεόραση",rom:"i tileórasi",pl:"telewizor"},
-  {gr:"το κλειδί",rom:"to klidí",pl:"klucz"},{gr:"ο καναπές",rom:"o kanapés",pl:"kanapa"},
-];
-
-const adjectives = [
-  {gr:"μεγάλος / μικρός",rom:"megálos / mikrós",pl:"duży / mały"},
-  {gr:"καλός / κακός",rom:"kalós / kakós",pl:"dobry / zły"},
-  {gr:"νέος / παλιός",rom:"néos / paliós",pl:"nowy / stary"},
-  {gr:"ζεστός / κρύος",rom:"zestós / kríos",pl:"gorący / zimny"},
-  {gr:"ακριβός / φτηνός",rom:"akrivós / ftinós",pl:"drogi / tani"},
-  {gr:"εύκολος / δύσκολος",rom:"éfkolos / dískolos",pl:"łatwy / trudny"},
-  {gr:"γρήγορος / αργός",rom:"grígoros / argós",pl:"szybki / wolny"},
-  {gr:"ωραίος / άσχημος",rom:"oréos / áschimos",pl:"ładny / brzydki"},
-  {gr:"κοντός / ψηλός",rom:"kondós / psilós",pl:"niski / wysoki"},
-  {gr:"αδύνατος / χοντρός",rom:"adínatos / chondrós",pl:"chudy / gruby"},
-  {gr:"δυνατός / αδύνατος",rom:"dinatós / adínatos",pl:"silny / słaby"},
-  {gr:"ήσυχος / θορυβώδης",rom:"ísichos / thorivódis",pl:"cichy / głośny"},
-  {gr:"σωστός / λάθος",rom:"sostós / láthos",pl:"poprawny / błędny"},
-  {gr:"ανοιχτός / κλειστός",rom:"anichtós / klistós",pl:"otwarty / zamknięty"},
-];
-
-const timeExpressions = [
-  {gr:"σήμερα",rom:"símera",pl:"dziś"},{gr:"αύριο",rom:"ávrio",pl:"jutro"},
-  {gr:"χθες",rom:"chthes",pl:"wczoraj"},{gr:"τώρα",rom:"tóra",pl:"teraz"},
-  {gr:"μετά / ύστερα",rom:"metá / ístera",pl:"potem / później"},
-  {gr:"πριν",rom:"prin",pl:"przedtem / zanim"},{gr:"πάντα",rom:"pánda",pl:"zawsze"},
-  {gr:"ποτέ",rom:"poté",pl:"nigdy"},{gr:"συνήθως",rom:"siníthos",pl:"zwykle"},
-  {gr:"μερικές φορές",rom:"merikés forés",pl:"czasami"},{gr:"σπάνια",rom:"spánia",pl:"rzadko"},
-  {gr:"νωρίς",rom:"norís",pl:"wcześnie"},{gr:"αργά",rom:"argá",pl:"późno"},
-  {gr:"σε λίγο",rom:"se lígo",pl:"za chwilę"},{gr:"μόλις",rom:"mólis",pl:"właśnie / dopiero co"},
-  {gr:"πέρσι",rom:"pérsi",pl:"w zeszłym roku"},{gr:"φέτος",rom:"fétos",pl:"w tym roku"},
-];
-
-const professions = [
-  {gr:"ο/η γιατρός",rom:"o/i jatrós",pl:"lekarz/ka"},{gr:"ο/η δάσκαλος/α",rom:"o/i dáskalos/a",pl:"nauczyciel/ka"},
-  {gr:"ο/η μαθητής/τρια",rom:"o/i mathitís/tria",pl:"uczeń/uczennica"},{gr:"ο/η φοιτητής/τρια",rom:"o/i fititís/tria",pl:"student/ka"},
-  {gr:"ο/η μηχανικός",rom:"o/i michanikós",pl:"inżynier"},{gr:"ο/η δικηγόρος",rom:"o/i dikigóros",pl:"prawnik"},
-  {gr:"ο/η οδηγός",rom:"o/i odigós",pl:"kierowca"},{gr:"ο/η μάγειρας",rom:"o/i mágiras",pl:"kucharz"},
-  {gr:"ο/η νοσοκόμα",rom:"o/i nosokóma",pl:"pielęgniarz/ka"},{gr:"ο/η σερβιτόρος/α",rom:"o/i servitóros/a",pl:"kelner/ka"},
-  {gr:"ο/η προγραμματιστής",rom:"o/i programatistís",pl:"programista"},
-];
-
-/* ===== NEW: GRAMMAR DATA ===== */
-const genderIntro = [
-  { gender:"Męski (αρσενικό)", article:"ο", color:"#3b82f6", endings:["-ος","-ης","-ας"],
-    examples:[
-      {gr:"ο φίλος",rom:"o fílos",pl:"przyjaciel"},{gr:"ο μαθητής",rom:"o mathitís",pl:"uczeń"},
-      {gr:"ο άντρας",rom:"o ándras",pl:"mężczyzna"},{gr:"ο δρόμος",rom:"o drómos",pl:"droga"},
-      {gr:"ο καφές",rom:"o kafés",pl:"kawa"},{gr:"ο πατέρας",rom:"o patéras",pl:"ojciec"},
+/* ===== KORYTARZ NAUKI: 13 lekcji rdzenia (0-12) + 2 bonusowe ===== */
+const lessons = [
+  { id:0, emoji:"Αα", title:"Alfabet i czytanie", desc:"24 litery, dwuznaki, pierwsze czytanie",
+    sections:[
+      {type:"text", title:"Zanim zaczniesz", body:"Grecki alfabet wyglada obco, ale wiele liter juz znasz: Α=a, Ε=e, Ι/Η=i, Ο/Ω=o, Κ=k, Μ=m, Ν=n, Τ=t. Kliknij kazda litere, posluchaj 🔊 i odkryj wymowe."},
+      {type:"letters"},
+      {type:"grammar", title:"4 pulapki — zapamietaj je", rule:"Β = „w” (nie „b”!) · Η = „i” (nie „h”!) · Ρ = „r” (nie „p”!) · Υ = „i” (nie „y”!). Te cztery zapamietaj — reszta jest logiczna."},
+      {type:"reading", title:"Pierwsze czytanie — pojedyncze slowa", level:0},
+      {type:"text", title:"Gotowe!", body:"Umiesz juz przeliterowac greckie slowa. Od teraz kazda fraza w kursie ma 🔊 — sluchaj i powtarzaj na glos."},
     ]},
-  { gender:"Żeński (θηλυκό)", article:"η", color:"#ec4899", endings:["-α","-η","-ού"],
-    examples:[
-      {gr:"η φίλη",rom:"i fíli",pl:"przyjaciółka"},{gr:"η θάλασσα",rom:"i thálasa",pl:"morze"},
-      {gr:"η μητέρα",rom:"i mitéra",pl:"matka"},{gr:"η ζωή",rom:"i zoí",pl:"życie"},
-      {gr:"η γυναίκα",rom:"i jinéka",pl:"kobieta"},{gr:"η αδερφή",rom:"i aderfí",pl:"siostra"},
+  { id:1, emoji:"👋", title:"Powitania", desc:"Przywitaj sie i badz uprzejmy",
+    sections:[
+      {type:"text", title:"Pierwsze slowa", body:"Od tych zwrotow zaczyna sie kazda rozmowa po grecku. Kliknij fraze, posluchaj i odkryj tlumaczenie."},
+      {type:"phrases", title:"Powitania i pozegnania", catIds:["basics"]},
+      {type:"phrases", title:"Uprzejmosci", catIds:["polite"]},
     ]},
-  { gender:"Nijaki (ουδέτερο)", article:"το", color:"#22c55e", endings:["-ο","-ι","-μα"],
-    examples:[
-      {gr:"το βιβλίο",rom:"to vivlío",pl:"książka"},{gr:"το σπίτι",rom:"to spíti",pl:"dom"},
-      {gr:"το όνομα",rom:"to ónoma",pl:"imię"},{gr:"το νερό",rom:"to neró",pl:"woda"},
-      {gr:"το παιδί",rom:"to pedí",pl:"dziecko"},{gr:"το πρόβλημα",rom:"to próvlima",pl:"problem"},
+  { id:2, emoji:"🙋", title:"Ja i ty", desc:"Przedstaw sie, zapytaj, zaprzecz",
+    sections:[
+      {type:"grammar", title:"είμαι — „byc” (najwazniejszy czasownik)",
+        table:{head:["Osoba","Forma","Wymowa"], rows:[["ja","είμαι","íme"],["ty","είσαι","íse"],["on/ona","είναι","íne"],["my","είμαστε","ímaste"],["wy","είστε","íste"],["oni","είναι","íne"]]}, speakCol:1},
+      {type:"grammar", title:"Jak powiedziec NIE", rule:"Δεν (den) przed czasownikiem = nie. Δεν είμαι = nie jestem · Δεν ξέρω = nie wiem · Δεν καταλαβαίνω = nie rozumiem. W greckim kazde slowo ma tez rodzaj (ο/η/το) — poznasz go w Lekcji 4."},
+      {type:"phrases", title:"Jak sie czujesz? Skad jestes?", catIds:["state"]},
+      {type:"phrases", title:"Podstawowe pytania", catIds:["ask"]},
+    ]},
+  { id:3, emoji:"🔢", title:"Liczby, czas, cena", desc:"Policz, zapytaj o godzine i cene",
+    sections:[
+      {type:"text", title:"Liczby to podstawa", body:"Bez nich nie zaplacisz, nie umowisz sie, nie kupisz biletu. Kliknij, zeby odkryc i posluchac."},
+      {type:"numbers"},
+      {type:"grammar", title:"Liczby zlozone", rule:"Laczysz dziesiatki z jednosciami: είκοσι ένα = 21, τριάντα πέντε = 35, σαράντα οχτώ = 48. Setki: διακόσια = 200, πεντακόσια = 500."},
+      {type:"phrases", title:"Ile kosztuje? O ktorej?", catIds:["numctx","time"]},
+    ]},
+  { id:4, emoji:"☕", title:"W kawiarni", desc:"Zamow, zaplac, pochwal",
+    sections:[
+      {type:"grammar", title:"Rodzajniki ο / η / το", rule:"Kazdy rzeczownik ma rodzaj: ο (meski) · η (zenski) · το (nijaki). Np. ο καφές (kawa), η σαλάτα (salatka), το νερό (woda). „Chce kawe” to: θα ήθελα έναν καφέ."},
+      {type:"phrases", title:"W kawiarni", catIds:["cafe"]},
+      {type:"reading", title:"Poczytaj: kawiarnia", level:2},
+    ]},
+  { id:5, emoji:"🗺️", title:"Kierunki", desc:"Znajdz droge i zapytaj gdzie",
+    sections:[
+      {type:"grammar", title:"4 przyimki = 80% sytuacji",
+        table:{head:["Grecki","Wymowa","Znaczenie"], rows:[["σε","se","do / w / na"],["από","apó","z / od"],["με","me","z (kims/czyms)"],["για","jia","dla / o"]]}, speakCol:0},
+      {type:"phrases", title:"Ruch i miejsce", catIds:["move"]},
+      {type:"phrases", title:"Czy jest tu blisko...?", catIds:["avail"]},
+    ]},
+  { id:6, emoji:"👨‍👩‍👧", title:"Rodzina", desc:"Opowiedz o bliskich",
+    sections:[
+      {type:"words", title:"Rodzina", items:[
+        {gr:"η μητέρα",rom:"i mitéra",pl:"matka"},{gr:"ο πατέρας",rom:"o patéras",pl:"ojciec"},
+        {gr:"ο αδερφός",rom:"o aderfós",pl:"brat"},{gr:"η αδερφή",rom:"i aderfí",pl:"siostra"},
+        {gr:"ο γιος",rom:"o jios",pl:"syn"},{gr:"η κόρη",rom:"i kóri",pl:"corka"},
+        {gr:"ο φίλος",rom:"o fílos",pl:"przyjaciel"},{gr:"η οικογένεια",rom:"i ikojénia",pl:"rodzina"}]},
+      {type:"grammar", title:"Moj, twoj, jego — ida PO rzeczowniku",
+        table:{head:["Grecki","Wymowa","Znaczenie"], rows:[["... μου","mu","moj"],["... σου","su","twoj"],["... του","tu","jego"],["... της","tis","jej"]]}, speakCol:0,
+        note:"το σπίτι μου = dom moj · η μητέρα σου = matka twoja"},
+      {type:"phrases", title:"Opisywanie osob i rzeczy", catIds:["describe"]},
+    ]},
+  { id:7, emoji:"✨", title:"Θέλω να... (klucz do greckiego)", desc:"Chce / moge / musze cos zrobic",
+    sections:[
+      {type:"grammar", title:"Najwazniejsza regula", rule:"Grecki nie ma bezokolicznika. Zamiast „chce isc” mowisz „chce ΝΑ ide”: θέλω να πάω. Wzor: [czasownik] + να + [odmieniony czasownik]."},
+      {type:"grammar", title:"3 czasowniki, ktore otwieraja wszystko",
+        table:{head:["Grecki","Wymowa","Znaczenie"], rows:[["θέλω να...","thélo na","chce..."],["μπορώ να...","boró na","moge..."],["πρέπει να...","prépi na","musze..."]]}, speakCol:0},
+      {type:"phrases", title:"Kluczowe konstrukcje", catIds:["modal"]},
+      {type:"phrases", title:"Wiem, rozumiem, lubie", catIds:["know"]},
+    ]},
+  { id:8, emoji:"🛒", title:"Zakupy i podroz", desc:"Kup, przymierz, dojedz",
+    sections:[
+      {type:"grammar", title:"Przymiotnik zmienia sie z rodzajem",
+        table:{head:["Meski","Zenski","Nijaki","Znaczenie"], rows:[["μεγάλος","μεγάλη","μεγάλο","duzy"],["μικρός","μικρή","μικρό","maly"],["καλός","καλή","καλό","dobry"]]}},
+      {type:"phrases", title:"Na zakupach", catIds:["shopping"]},
+      {type:"phrases", title:"Preferencje", catIds:["pref"]},
+      {type:"phrases", title:"Na lotnisku", catIds:["airport"]},
+    ]},
+  { id:9, emoji:"🌤️", title:"Pogoda i czasy", desc:"Mow o jutrze i wczoraj",
+    sections:[
+      {type:"grammar", title:"Przyszlosc i przeszlosc", rule:"Przyszly = θα + czasownik: θα πάω = pojde, θα φάω = zjem. Przeszly (proste zdarzenie) ma koncowki -α, -ες, -ε: πήγα = poszedlem, έφαγα = zjadlem."},
+      {type:"phrases", title:"Pogoda", catIds:["weather"]},
+      {type:"phrases", title:"Laczenie zdan", catIds:["connect"]},
+    ]},
+  { id:10, emoji:"💬", title:"Rozmowa", desc:"Reaguj, proponuj, umow sie",
+    sections:[
+      {type:"grammar", title:"Tryb rozkazujacy (krotko)", rule:"Έλα! = Chodz! · Πες μου = Powiedz mi · Περίμενε = Poczekaj · Πάμε! = Chodzmy! Przydaje sie na co dzien."},
+      {type:"phrases", title:"Reakcje — brzmisz jak Grek", catIds:["react"]},
+      {type:"phrases", title:"Kiedy nie rozumiesz", catIds:["rescue"]},
+      {type:"phrases", title:"Proponujesz i umawiasz sie", catIds:["suggest","meetup"]},
+    ]},
+  { id:11, emoji:"❤️‍🩹", title:"Emocje i zdrowie", desc:"Powiedz jak sie czujesz, popros o pomoc",
+    sections:[
+      {type:"phrases", title:"Emocje i uczucia", catIds:["emotions"]},
+      {type:"phrases", title:"U lekarza", catIds:["doctor"]},
+    ]},
+  { id:12, emoji:"🎓", title:"Laczenie wszystkiego", desc:"Opowiadaj, zaprzeczaj, chwal",
+    sections:[
+      {type:"text", title:"Masz wszystkie klocki", body:"να, spojniki, czasy, przyimki, rodzajniki. Teraz budujesz dluzsze wypowiedzi."},
+      {type:"phrases", title:"Narracja", catIds:["narrate"]},
+      {type:"phrases", title:"Przeczenia", catIds:["neg"]},
+      {type:"phrases", title:"Komplementy", catIds:["compliment"]},
+      {type:"reading", title:"Trudniejsze czytanie", level:7},
+      {type:"text", title:"Καλή τύχη! 🎉", body:"Jestes gotowy na poziom A1. Zacznij rozmawiac z Grekami — i baw sie dobrze!"},
+    ]},
+  { id:13, emoji:"💕", title:"Milosc i flirt", desc:"Randki, komplementy, uczucia", bonus:true,
+    sections:[
+      {type:"text", title:"Bonus", body:"Material poza glownym kursem — gdy bedziesz gotowy."},
+      {type:"phrases", title:"Pierwsze podejscie", catIds:["approach"]},
+      {type:"phrases", title:"Randki i flirt", catIds:["firstdate","flirt"]},
+      {type:"phrases", title:"Wyrazanie uczuc", catIds:["feelings","petnames"]},
+      {type:"phrases", title:"Zwiazek i rodzina partnera", catIds:["relationship","meetfamily"]},
+    ]},
+  { id:14, emoji:"🔥", title:"Jak Grek (18+)", desc:"Nerwy, przeklenstwa, ulica", bonus:true, adult:true,
+    sections:[
+      {type:"text", title:"Uwaga — wulgaryzmy", body:"Prawdziwy jezyk ulicy. Uzywaj z glowa — kontekst jest wszystkim."},
+      {type:"phrases", title:"Zlosc i codzienne nerwy", catIds:["angry","everyday"]},
+      {type:"phrases", title:"Przeklenstwa", catIds:["curse"]},
+      {type:"phrases", title:"Μαλάκα — instrukcja obslugi", catIds:["malaka"]},
+      {type:"phrases", title:"Klotnie", catIds:["argue"]},
     ]},
 ];
 
-const declensions = [
-  { title:"Męski -ος", color:"#3b82f6", word:"φίλος (przyjaciel)",
-    cases:[
-      {c:"Mianownik",sg:"ο φίλος",pl:"οι φίλοι",sgR:"o fílos",plR:"i fíli",use:"kto? co?"},
-      {c:"Biernik",sg:"τον φίλο",pl:"τους φίλους",sgR:"ton fílo",plR:"tus fílus",use:"kogo? co? (dopełnienie)"},
-      {c:"Dopełniacz",sg:"του φίλου",pl:"των φίλων",sgR:"tu fílu",plR:"ton fílon",use:"czyj? czego?"},
-    ]},
-  { title:"Żeński -α", color:"#ec4899", word:"θάλασσα (morze)",
-    cases:[
-      {c:"Mianownik",sg:"η θάλασσα",pl:"οι θάλασσες",sgR:"i thálasa",plR:"i thálases",use:"kto? co?"},
-      {c:"Biernik",sg:"τη θάλασσα",pl:"τις θάλασσες",sgR:"ti thálasa",plR:"tis thálases",use:"kogo? co?"},
-      {c:"Dopełniacz",sg:"της θάλασσας",pl:"των θαλασσών",sgR:"tis thálasas",plR:"ton thalasón",use:"czyj? czego?"},
-    ]},
-  { title:"Nijaki -ο", color:"#22c55e", word:"βιβλίο (książka)",
-    cases:[
-      {c:"Mianownik",sg:"το βιβλίο",pl:"τα βιβλία",sgR:"to vivlío",plR:"ta vivlía",use:"kto? co?"},
-      {c:"Biernik",sg:"το βιβλίο",pl:"τα βιβλία",sgR:"to vivlío",plR:"ta vivlía",use:"kogo? co?"},
-      {c:"Dopełniacz",sg:"του βιβλίου",pl:"των βιβλίων",sgR:"tu vivlíu",plR:"ton vivlíon",use:"czyj? czego?"},
-    ]},
-];
 
-const verbs = [
-  { gr:"είμαι",rom:"íme",pl:"być",type:"nieregularny",
-    present:[
-      {person:"εγώ (ja)",form:"είμαι",rom:"íme"},{person:"εσύ (ty)",form:"είσαι",rom:"íse"},
-      {person:"αυτός/ή/ό (on/a/o)",form:"είναι",rom:"íne"},{person:"εμείς (my)",form:"είμαστε",rom:"ímaste"},
-      {person:"εσείς (wy/Pan)",form:"είστε",rom:"íste"},{person:"αυτοί/ές/ά (oni/e)",form:"είναι",rom:"íne"},
-    ],
-    pastHint:"ήμουν, ήσουν, ήταν, ήμασταν, ήσασταν, ήταν",
-    futureHint:"θα είμαι, θα είσαι, θα είναι...",
-    examples:[{gr:"Είμαι Πολωνός",rom:"Íme Polonós",pl:"Jestem Polakiem"},{gr:"Είσαι καλά;",rom:"Íse kalá?",pl:"Czy dobrze się czujesz?"}],
-  },
-  { gr:"έχω",rom:"écho",pl:"mieć",type:"regularny -ω",
-    present:[
-      {person:"εγώ",form:"έχω",rom:"écho"},{person:"εσύ",form:"έχεις",rom:"échis"},
-      {person:"αυτός/ή/ό",form:"έχει",rom:"échi"},{person:"εμείς",form:"έχουμε",rom:"échume"},
-      {person:"εσείς",form:"έχετε",rom:"échete"},{person:"αυτοί/ές/ά",form:"έχουν",rom:"échun"},
-    ],
-    pastHint:"είχα, είχες, είχε, είχαμε, είχατε, είχαν",
-    futureHint:"θα έχω, θα έχεις, θα έχει...",
-    examples:[{gr:"Έχω ένα σπίτι",rom:"Écho éna spíti",pl:"Mam dom"},{gr:"Έχεις αδερφή;",rom:"Échis aderfí?",pl:"Masz siostrę?"}],
-  },
-  { gr:"θέλω",rom:"thélo",pl:"chcieć",type:"regularny -ω",
-    present:[
-      {person:"εγώ",form:"θέλω",rom:"thélo"},{person:"εσύ",form:"θέλεις",rom:"thélis"},
-      {person:"αυτός/ή/ό",form:"θέλει",rom:"théli"},{person:"εμείς",form:"θέλουμε",rom:"thélume"},
-      {person:"εσείς",form:"θέλετε",rom:"thélete"},{person:"αυτοί/ές/ά",form:"θέλουν",rom:"thélun"},
-    ],
-    pastHint:"ήθελα, ήθελες, ήθελε, θέλαμε, θέλατε, ήθελαν",
-    futureHint:"θα θέλω, θα θέλεις, θα θέλει...",
-    examples:[{gr:"Θέλω νερό",rom:"Thélo neró",pl:"Chcę wodę"},{gr:"Τι θέλεις;",rom:"Ti thélis?",pl:"Czego chcesz?"}],
-  },
-  { gr:"μιλάω",rom:"miláo",pl:"mówić",type:"regularny -άω",
-    present:[
-      {person:"εγώ",form:"μιλάω",rom:"miláo"},{person:"εσύ",form:"μιλάς",rom:"milás"},
-      {person:"αυτός/ή/ό",form:"μιλάει",rom:"milái"},{person:"εμείς",form:"μιλάμε",rom:"miláme"},
-      {person:"εσείς",form:"μιλάτε",rom:"miláte"},{person:"αυτοί/ές/ά",form:"μιλάνε",rom:"milánе"},
-    ],
-    pastHint:"μίλησα, μίλησες, μίλησε, μιλήσαμε, μιλήσατε, μίλησαν",
-    futureHint:"θα μιλήσω, θα μιλήσεις, θα μιλήσει...",
-    examples:[{gr:"Μιλάω ελληνικά",rom:"Miláo eliniká",pl:"Mówię po grecku"},{gr:"Μιλάς αγγλικά;",rom:"Milás angliká?",pl:"Mówisz po angielsku?"}],
-  },
-  { gr:"μπορώ",rom:"boró",pl:"móc",type:"regularny -ώ",
-    present:[
-      {person:"εγώ",form:"μπορώ",rom:"boró"},{person:"εσύ",form:"μπορείς",rom:"borís"},
-      {person:"αυτός/ή/ό",form:"μπορεί",rom:"borí"},{person:"εμείς",form:"μπορούμε",rom:"borúme"},
-      {person:"εσείς",form:"μπορείτε",rom:"boríte"},{person:"αυτοί/ές/ά",form:"μπορούν",rom:"borún"},
-    ],
-    pastHint:"μπόρεσα, μπόρεσες, μπόρεσε...",
-    futureHint:"θα μπορέσω, θα μπορέσεις...",
-    examples:[{gr:"Μπορώ να σε βοηθήσω",rom:"Boró na se voithíso",pl:"Mogę ci pomóc"},{gr:"Μπορείς να έρθεις;",rom:"Borís na érthis?",pl:"Możesz przyjść?"}],
-  },
-];
+/* ===== AUDIO: Web Speech API (el-GR) ===== */
+let _elVoice = null;
+function pickVoice(){
+  try{
+    if(!window.speechSynthesis) return null;
+    const vs = window.speechSynthesis.getVoices() || [];
+    return vs.find(v=>v.lang && v.lang.toLowerCase().indexOf("el")===0) || null;
+  }catch(e){ return null; }
+}
+function speak(text){
+  try{
+    if(!window.speechSynthesis || !text) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.lang = "el-GR";
+    if(!_elVoice) _elVoice = pickVoice();
+    if(_elVoice) u.voice = _elVoice;
+    u.rate = 0.88;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function Speak({text,size}){
+  return <button className="spk" aria-label="Posluchaj wymowy" onClick={(e)=>{e.stopPropagation();speak(text);}}>
+    <Volume2 size={size||18} strokeWidth={2}/>
+  </button>;
+}
 
-const verbEndingsTable = {
-  title: "Wzory końcówek — czas teraźniejszy",
-  patterns: [
-    { type:"Typ -ω (γράφω, θέλω, έχω)", endings:["-ω","-εις","-ει","-ουμε","-ετε","-ουν"], persons:["εγώ","εσύ","αυτ.","εμείς","εσείς","αυτ."] },
-    { type:"Typ -άω (μιλάω, αγαπάω)", endings:["-άω","-άς","-άει","-άμε","-άτε","-άνε"], persons:["εγώ","εσύ","αυτ.","εμείς","εσείς","αυτ."] },
-    { type:"Typ -ώ (μπορώ, ζω)", endings:["-ώ","-είς","-εί","-ούμε","-είτε","-ούν"], persons:["εγώ","εσύ","αυτ.","εμείς","εσείς","αυτ."] },
-  ],
-  future: "Czas przyszły = θα + forma teraźniejsza (z drobnymi zmianami tematu): θα γράψω, θα μιλήσω",
-  past: "Czas przeszły prosty (αόριστος): zmienia się temat + końcówki: -α, -ες, -ε, -αμε, -ατε, -αν",
-};
+/* ===== Karta z odkrywaniem tlumaczenia ===== */
+function RevealCard({gr,rom,pl,note}){
+  const [open,setOpen]=useState(false);
+  const toggle=()=>setOpen(o=>!o);
+  return <div className={"vc"+(open?" rev":"")} role="button" tabIndex={0} aria-pressed={open}
+    onClick={toggle}
+    onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}}}>
+    <div className="vc-top">
+      <div className="vg" lang="el">{gr}</div>
+      <Speak text={gr}/>
+    </div>
+    <div className="vr"><R t={rom}/></div>
+    {open
+      ? <><div className="vp">{pl}</div>{note&&<span className="vnote">{note}</span>}</>
+      : <div className="vh">▸ pokaz tlumaczenie</div>}
+  </div>;
+}
 
-/* ===== COMPONENTS ===== */
-function AlphabetView() {
+function CardList({s}){
+  const items = s.type==="words"
+    ? s.items
+    : s.catIds.flatMap(cid=>{const c=categories.find(x=>x.id===cid);return c?c.phrases:[];});
+  return <div className="vlist">{items.map((p,i)=><RevealCard key={i} gr={p.gr} rom={p.rom} pl={p.pl} note={p.note}/>)}</div>;
+}
+
+function GrammarBlock({s}){
+  return <div className="gbox">
+    {s.rule && <p className="grule">{s.rule}</p>}
+    {s.table && <div className="overflow-x"><table className="gt">
+      <thead><tr>{s.table.head.map((h,i)=><th key={i}>{h}</th>)}</tr></thead>
+      <tbody>{s.table.rows.map((r,ri)=>(
+        <tr key={ri}>{r.map((c,ci)=>(
+          /[Ͱ-Ͽ]/.test(c)
+            ? <td key={ci} className="gt-greek"><span lang="el">{c}</span> <Speak text={c} size={14}/></td>
+            : <td key={ci}><R t={c}/></td>
+        ))}</tr>
+      ))}</tbody>
+    </table></div>}
+    {s.note && <p className="gnote" lang="el">{s.note}</p>}
+  </div>;
+}
+
+function LettersBlock(){
   const [flipped,setFlipped]=useState({});
   const [showDi,setShowDi]=useState(false);
-  return (<div>
-    <div className="sh"><h2 className="st">Αλφάβητο — Alfabet</h2><p className="sd">Kliknij literę, aby odkryć wymowę</p></div>
+  const flip=(i)=>setFlipped(p=>({...p,[i]:!p[i]}));
+  return <div>
     <div className="alpha-grid">{alphabet.map((l,i)=>(
-      <div key={i} className={"ac"+(flipped[i]?" fl":"")} onClick={()=>setFlipped(p=>({...p,[i]:!p[i]}))}>
-        {!flipped[i]?<><div className="al"><span className="au">{l.upper}</span><span className="alo">{l.lower}</span></div><div className="an">{l.name}</div><div className="asb">{l.sound}</div></>
-        :<><div className="at">{l.tip}</div><div className="ae"><span className="aeg">{l.example}</span><span className="aer"><R t={l.exRom}/></span><span className="aep">{l.exPl}</span></div></>}
-      </div>))}</div>
-    <button className="dtog" onClick={()=>setShowDi(!showDi)}>{showDi?"▾ Ukryj dwuznaki":"▸ Dwuznaki — WAŻNE!"}</button>
-    {showDi&&<div className="dlist">{digraphs.map((d,i)=>(<div key={i} className="dc"><div className="dctop"><span className="dcc">{d.combo}</span><span className="dcsb">{d.sound}</span></div><div className="dct">{d.tip}</div><div className="dce"><span className="dcg">{d.example}</span><span className="dcr"><R t={d.exRom}/></span><span className="dcp">= {d.exPl}</span></div></div>))}</div>}
-  </div>);
+      <div key={i} className={"ac"+(flipped[i]?" fl":"")} role="button" tabIndex={0} aria-pressed={!!flipped[i]}
+        onClick={()=>flip(i)}
+        onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flip(i);}}}>
+        {!flipped[i]
+          ? <>
+              <div className="al"><span className="au" lang="el">{l.upper}</span><span className="alo" lang="el">{l.lower}</span></div>
+              <div className="an">{l.name}</div>
+              <div className="asb">{l.sound}</div>
+            </>
+          : <>
+              <div className="at">{l.tip}</div>
+              <div className="ae"><span className="aeg" lang="el">{l.example}</span><span className="aer"><R t={l.exRom}/></span><span className="aep">{l.exPl}</span></div>
+            </>}
+        <button className="spk spk-corner" aria-label="Posluchaj przyklad" onClick={(e)=>{e.stopPropagation();speak(l.example);}}><Volume2 size={15}/></button>
+      </div>
+    ))}</div>
+    <button className="dtog" onClick={()=>setShowDi(s=>!s)}>{showDi?"▾ Ukryj dwuznaki":"▸ Dwuznaki — WAZNE!"}</button>
+    {showDi && <div className="dlist">{digraphs.map((d,i)=>(
+      <div key={i} className="dc">
+        <div className="dctop"><span className="dcc" lang="el">{d.combo}</span><span className="dcsb">{d.sound}</span><Speak text={d.example} size={16}/></div>
+        <div className="dct">{d.tip}</div>
+        <div className="dce"><span className="dcg" lang="el">{d.example}</span><span className="dcr"><R t={d.exRom}/></span><span className="dcp">= {d.exPl}</span></div>
+      </div>
+    ))}</div>}
+  </div>;
 }
 
-function VocabView() {
-  const [sub,setSub]=useState("questions");
+function NumbersBlock(){
   const [rev,setRev]=useState({});
-  const toggle=(k)=>setRev(p=>({...p,[k]:!p[k]}));
-  const renderList=(items,prefix,hasEx)=>(<div className="vlist">{items.map((d,i)=>{
-    const k=prefix+i; const isR=rev[k];
-    return <div key={k} className={"vc"+(isR?" rev":"")} onClick={()=>toggle(k)}>
-      <div className="vg">{d.gr}</div><div className="vr"><R t={d.rom}/></div>
-      {isR?<><div className="vp">{d.pl}</div>{(hasEx&&d.ex)&&<div className="ex-sentence">{d.ex}</div>}{d.note&&<span className="vnote">{d.note}</span>}</>:<div className="vh">▸ pokaż</div>}
-    </div>
-  })}</div>);
-  return (<div>
-    <div className="sh"><h2 className="st">Λεξιλόγιο — Słownictwo</h2></div>
-    <div className="subtabs">
-      {[{id:"questions",label:"❓ Pytajniki"},{id:"prep",label:"📌 Przyimki"},{id:"conj",label:"🔗 Spójniki"},{id:"dir",label:"🧭 Kierunki"},
-        {id:"time",label:"⏰ Czas"},{id:"adj",label:"📊 Przymiotniki"},{id:"family",label:"👨‍👩‍👧 Rodzina"},{id:"food",label:"🍽️ Jedzenie"},
-        {id:"colors",label:"🎨 Kolory"},{id:"body",label:"👤 Ciało"},{id:"home",label:"🏠 Dom"},{id:"jobs",label:"💼 Zawody"},
-        {id:"numbers",label:"🔢 Liczby"},{id:"ordinals",label:"🏅 Porządkowe"},{id:"days",label:"📅 Dni"},{id:"months",label:"🗓️ Miesiące"},
-      ].map(t=>(
-        <button key={t.id} className={"stb"+(sub===t.id?" active":"")} onClick={()=>{setSub(t.id);setRev({})}}>{t.label}</button>
-      ))}
-    </div>
-    {sub==="questions"&&renderList(questionWords,"q",true)}
-    {sub==="prep"&&renderList(prepositions,"pr",true)}
-    {sub==="conj"&&renderList(conjunctions,"cj",true)}
-    {sub==="dir"&&renderList(directions,"dir",false)}
-    {sub==="time"&&renderList(timeExpressions,"te",false)}
-    {sub==="adj"&&renderList(adjectives,"adj",false)}
-    {sub==="family"&&renderList(family,"fam",false)}
-    {sub==="food"&&renderList(food,"fd",false)}
-    {sub==="colors"&&renderList(colors,"col",false)}
-    {sub==="body"&&renderList(bodyParts,"bp",false)}
-    {sub==="home"&&renderList(homeItems,"hm",false)}
-    {sub==="jobs"&&renderList(professions,"jb",false)}
-    {sub==="ordinals"&&<div className="vlist">{ordinals.map((o,i)=>{
-      const k="ord"+i; const isR=rev[k];
-      return <div key={k} className={"vc"+(isR?" rev":"")} onClick={()=>toggle(k)}>
-        <div className="ord-row"><span className="ord-num">{o.n}</span><span className="vg">{o.gr}</span></div><div className="vr"><R t={o.rom}/></div>
-        {isR?<div className="vp">{o.pl}</div>:<div className="vh">▸ pokaż</div>}
-      </div>
-    })}</div>}
-    {sub==="numbers"&&<div className="num-grid">{numbers.map((n,i)=>{
-      const k="n"+i; const isR=rev[k];
-      return <div key={k} className={"nc"+(isR?" rev":"")} onClick={()=>toggle(k)}>
-        <div className="nn">{n.n}</div>
-        {isR?<><div className="ng">{n.gr}</div><div className="nr"><R t={n.rom}/></div></>:<div className="nh">kliknij</div>}
-      </div>
-    })}</div>}
-    {sub==="days"&&renderList(days,"d",false)}
-    {sub==="months"&&renderList(months,"m",false)}
-  </div>);
+  const toggle=(i)=>setRev(p=>({...p,[i]:!p[i]}));
+  return <div className="num-grid">{numbers.map((n,i)=>{
+    const open=rev[i];
+    return <div key={i} className={"nc"+(open?" rev":"")} role="button" tabIndex={0} aria-pressed={!!open}
+      onClick={()=>toggle(i)}
+      onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle(i);}}}>
+      <div className="nn">{n.n}</div>
+      {open
+        ? <><div className="ng" lang="el">{n.gr}</div><div className="nr"><R t={n.rom}/></div><button className="spk spk-corner" aria-label="Posluchaj" onClick={(e)=>{e.stopPropagation();speak(n.gr);}}><Volume2 size={14}/></button></>
+        : <div className="nh">kliknij</div>}
+    </div>;
+  })}</div>;
 }
 
-function GrammarView() {
-  const [sub,setSub]=useState("na");
-  const [open,setOpen]=useState(null);
-  const [verbIdx,setVerbIdx]=useState(0);
-  const [showConj,setShowConj]=useState(false);
-  const v=verbs[verbIdx];
-  return (<div>
-    <div className="sh"><h2 className="st">Γραμματική — Gramatyka</h2></div>
-    <div className="subtabs">
-      {[{id:"na",label:"✨ Να (klej)"},{id:"pronouns",label:"🙋 Zaimki"},{id:"articles",label:"📎 Rodzajniki"},{id:"genders",label:"⚡ Rodzaje"},{id:"decl",label:"📐 Odmiany"},{id:"verbs",label:"🔄 Czasowniki"}].map(t=>(
-        <button key={t.id} className={"stb"+(sub===t.id?" active":"")} onClick={()=>{setSub(t.id);setOpen(null);setShowConj(false)}}>{t.label}</button>
-      ))}
-    </div>
-
-    {sub==="na"&&<div className="glist">
-      <div className="gram-intro"><strong>Να</strong> to najważniejsza konstrukcja w greckim. Grecki nie ma bezokolicznika — zamiast 'mogę iść' mówisz 'mogę <strong>να</strong> idę'. Wzorzec: <strong>[czasownik 1] + να + [odmieniony czasownik 2]</strong></div>
-      {naGroups.map((g,gi)=>(
-        <div key={gi} className="gcard" style={{borderLeftColor:g.color}}>
-          <div className="ghead"><span className="gname" style={{color:g.color}}>{g.title}</span></div>
-          {g.items.map((item,ii)=>(
-            <div key={ii} className="na-item">
-              <div className="na-head">
-                <span className="na-gr">{item.gr}</span>
-                <span className="na-rom"><R t={item.rom}/></span>
-              </div>
-              <div className="na-pl">{item.pl}</div>
-              <div className="ex-sentence">{item.ex}</div>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>}
-
-    {sub==="pronouns"&&<div className="glist">
-      <div className="gram-intro">Grecki ma <strong>zaimki osobowe</strong> (ja, ty, on...), <strong>dzierżawcze</strong> (mój, twój...) i <strong>słabe zaimki dopełnienia</strong> (mnie, ciebie...). Dzierżawcze idą PO rzeczowniku: <strong>το σπίτι μου</strong> = dom mój.</div>
-      <div className="dcard">
-        <div className="dcard-head" style={{color:"#7c3aed"}}>Tabela zaimków</div>
-        <div className="dcard-word">Osobowe + dzierżawcze + dopełnienie</div>
-        <div className="overflow-x"><table className="dtable">
-          <thead><tr><th>Osoba</th><th>Osobowy</th><th>Dzierżawczy</th><th>Dopełnienie</th></tr></thead>
-          <tbody>{pronounsPersonal.map((p,i)=>(
-            <tr key={i}>
-              <td className="dtd-case">{p.person}</td>
-              <td><div className="dtd-gr">{p.gr}</div><div className="dtd-rom"><R t={p.rom}/></div></td>
-              <td><div className="dtd-gr">{p.poss.split(" ")[0]}</div><div className="dtd-rom"><R t={p.poss.split(" ").slice(1).join(" ")}/></div></td>
-              <td><div className="dtd-gr">{p.weak.split(" ")[0]}</div><div className="dtd-rom"><R t={p.weak.split(" ").slice(1).join(" ")}/></div></td>
-            </tr>
-          ))}</tbody>
-        </table></div>
-      </div>
-      <div className="dcard">
-        <div className="dcard-head" style={{color:"#7c3aed"}}>Jak ich używać?</div>
-        <div className="verb-ex"><div className="vex-gr">Το σπίτι <strong>μου</strong> είναι μικρό.</div><div className="vex-rom"><R t="To spíti mu íne mikró."/></div><div className="vex-pl"><strong>Mój</strong> dom jest mały. (dosł. dom mój)</div></div>
-        <div className="verb-ex"><div className="vex-gr"><strong>Σε</strong> βλέπω!</div><div className="vex-rom"><R t="Se vlépo!"/></div><div className="vex-pl">Widzę <strong>cię</strong>!</div></div>
-        <div className="verb-ex"><div className="vex-gr"><strong>Αυτός</strong> μιλάει ελληνικά.</div><div className="vex-rom"><R t="Aftós milái eliniká."/></div><div className="vex-pl"><strong>On</strong> mówi po grecku.</div></div>
-      </div>
-    </div>}
-
-    {sub==="articles"&&<div className="glist">
-      <div className="gram-intro">W greckim <strong>rodzajnik jest obowiązkowy</strong> prawie zawsze. Odmienia się przez przypadki i rodzaje. Na A1 najważniejszy jest biernik — bo używasz go po większości czasowników.</div>
-      <div className="dcard">
-        <div className="dcard-head" style={{color:"#0891b2"}}>{articles.definite.title}</div>
-        <div className="dcard-word">ο, η, το = odpowiednik ang. 'the'</div>
-        <div className="overflow-x"><table className="dtable">
-          <thead><tr><th>Przypadek</th><th>Męski</th><th>Żeński</th><th>Nijaki</th><th>M.mn</th><th>Ż.mn</th><th>N.mn</th></tr></thead>
-          <tbody>{articles.definite.rows.map((r,i)=>(
-            <tr key={i}><td className="dtd-case">{r.c}</td><td className="dtd-gr">{r.m}</td><td className="dtd-gr">{r.f}</td><td className="dtd-gr">{r.n}</td><td className="dtd-gr">{r.mpl}</td><td className="dtd-gr">{r.fpl}</td><td className="dtd-gr">{r.npl}</td></tr>
-          ))}</tbody>
-        </table></div>
-      </div>
-      <div className="dcard">
-        <div className="dcard-head" style={{color:"#0891b2"}}>{articles.indefinite.title}</div>
-        <div className="dcard-word">ένας, μία, ένα = odpowiednik ang. 'a/an' (tylko l.poj.)</div>
-        <div className="overflow-x"><table className="dtable">
-          <thead><tr><th>Przypadek</th><th>Męski</th><th>Żeński</th><th>Nijaki</th></tr></thead>
-          <tbody>{articles.indefinite.rows.map((r,i)=>(
-            <tr key={i}><td className="dtd-case">{r.c}</td><td className="dtd-gr">{r.m}</td><td className="dtd-gr">{r.f}</td><td className="dtd-gr">{r.n}</td></tr>
-          ))}</tbody>
-        </table></div>
-      </div>
-      <div className="dcard">
-        <div className="dcard-head" style={{color:"#0891b2"}}>Kiedy który?</div>
-        <div className="verb-ex"><div className="vex-gr">Βλέπω <strong>τον</strong> φίλο.</div><div className="vex-rom"><R t="Vlépo ton fílo."/></div><div className="vex-pl">Widzę (tego) przyjaciela. — biernik męski</div></div>
-        <div className="verb-ex"><div className="vex-gr">Θέλω <strong>ένα</strong> νερό.</div><div className="vex-rom"><R t="Thélo éna neró."/></div><div className="vex-pl">Chcę (jedną) wodę. — nieokreślony nijaki</div></div>
-        <div className="verb-ex"><div className="vex-gr">Το βιβλίο <strong>της</strong> μητέρας.</div><div className="vex-rom"><R t="To vivlío tis mitéras."/></div><div className="vex-pl">Książka matki. — dopełniacz żeński</div></div>
-      </div>
-    </div>}
-
-    {sub==="genders"&&<div className="glist">
-      <div className="gram-intro">W greckim każdy rzeczownik ma rodzaj. Rodzaj rozpoznajesz po <strong>rodzajniku</strong> i <strong>końcówce</strong>.</div>
-      {genderIntro.map((g,gi)=>(
-        <div key={gi} className="gcard" style={{borderLeftColor:g.color}}>
-          <div className="ghead" style={{color:g.color}}>
-            <span className="gart">{g.article}</span>
-            <span className="gname">{g.gender}</span>
-          </div>
-          <div className="gend">Końcówki: {g.endings.join(", ")}</div>
-          <div className="gex">{g.examples.map((e,j)=>(
-            <div key={j} className="gex-item"><span className="gex-gr">{e.gr}</span><span className="gex-rom"><R t={e.rom}/></span><span className="gex-pl">{e.pl}</span></div>
-          ))}</div>
-        </div>
-      ))}
-    </div>}
-
-    {sub==="decl"&&<div className="glist">
-      <div className="gram-intro">Na A1 najważniejsze są 3 przypadki: mianownik (kto?), biernik (kogo?), i dopełniacz (czyj?). Biernik jest najczęstszy — używasz go po prawie każdym czasowniku.</div>
-      {declensions.map((d,di)=>(
-        <div key={di} className="dcard">
-          <div className="dcard-head" style={{color:d.color}}>{d.title}</div>
-          <div className="dcard-word">{d.word}</div>
-          <table className="dtable">
-            <thead><tr><th>Przypadek</th><th>l.poj.</th><th>l.mn.</th></tr></thead>
-            <tbody>{d.cases.map((c,ci)=>(
-              <tr key={ci}>
-                <td className="dtd-case">{c.c}<div className="dtd-use">{c.use}</div></td>
-                <td><div className="dtd-gr">{c.sg}</div><div className="dtd-rom"><R t={c.sgR}/></div></td>
-                <td><div className="dtd-gr">{c.pl}</div><div className="dtd-rom"><R t={c.plR}/></div></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      ))}
-    </div>}
-
-    {sub==="verbs"&&<div className="glist">
-      <div className="gram-intro">Grecki ma 3 główne typy odmian czasowników. Czas przyszły tworzy się przez <strong>θα + forma</strong>. Na A1 skup się na czasie teraźniejszym.</div>
-
-      <div className="vpatterns">
-        <div className="vpat-title">Wzory końcówek — czas teraźniejszy</div>
-        {verbEndingsTable.patterns.map((p,i)=>(
-          <div key={i} className="vpat-row">
-            <div className="vpat-type">{p.type}</div>
-            <div className="vpat-ends">{p.persons.map((pr,j)=>(
-              <span key={j} className="vpat-cell"><span className="vpat-p">{pr}</span><span className="vpat-e">{p.endings[j]}</span></span>
-            ))}</div>
-          </div>
-        ))}
-        <div className="vpat-note">🔮 Przyszły: {verbEndingsTable.future}</div>
-        <div className="vpat-note">⏪ Przeszły: {verbEndingsTable.past}</div>
-      </div>
-
-      <div className="verb-nav">
-        {verbs.map((vb,i)=>(
-          <button key={i} className={"vnb"+(verbIdx===i?" active":"")} onClick={()=>{setVerbIdx(i);setShowConj(false)}}>
-            {vb.gr}
-          </button>
-        ))}
-      </div>
-      <div className="verb-card">
-        <div className="verb-head">
-          <span className="verb-gr">{v.gr}</span>
-          <span className="verb-rom"><R t={v.rom}/></span>
-          <span className="verb-pl">= {v.pl}</span>
-          <span className="verb-type">{v.type}</span>
-        </div>
-        <button className="conj-btn" onClick={()=>setShowConj(!showConj)}>
-          {showConj?"▾ Ukryj koniugację":"▸ Pokaż koniugację (czas teraźniejszy)"}
-        </button>
-        {showConj&&<table className="conj-table">
-          <tbody>{v.present.map((p,i)=>(
-            <tr key={i}><td className="conj-per">{p.person}</td><td className="conj-form">{p.form}</td><td className="conj-rom"><R t={p.rom}/></td></tr>
-          ))}</tbody>
-        </table>}
-        <div className="verb-times">
-          <div className="vt-row"><span className="vt-label">⏪ Przeszły:</span><span className="vt-val">{v.pastHint}</span></div>
-          <div className="vt-row"><span className="vt-label">🔮 Przyszły:</span><span className="vt-val">{v.futureHint}</span></div>
-        </div>
-        <div className="verb-ex-title">Przykłady użycia:</div>
-        {v.examples.map((e,i)=>(<div key={i} className="verb-ex"><div className="vex-gr">{e.gr}</div><div className="vex-rom"><R t={e.rom}/></div><div className="vex-pl">{e.pl}</div></div>))}
-      </div>
-    </div>}
-  </div>);
+function ReadingBlock({level}){
+  const lv = readingLevels[level];
+  if(!lv) return null;
+  return <div className="vlist">{lv.items.map((it,i)=>(
+    <RevealCard key={i} gr={it.gr} rom={Array.isArray(it.rom)?it.rom.join(""):it.rom} pl={it.pl}/>
+  ))}</div>;
 }
 
-function ReadingView() {
-  const [currentLevel,setCurrentLevel]=useState(0);
-  const [revealedItems,setRevealedItems]=useState({});
-  const [revealMode,setRevealMode]=useState("syllable");
-  const level=readingLevels[currentLevel];
-  return (<div>
-    <div className="sh"><h2 className="st">Ανάγνωση — Czytanie</h2><p className="sd">Od sylab do pełnych zdań — ucz się czytać wzrokowo</p></div>
-    <div className="subtabs">
-      {readingLevels.map((lv,i)=>(
-        <button key={i} className={"stb"+(currentLevel===i?" active":"")} onClick={()=>{setCurrentLevel(i);setRevealedItems({})}}>
-          {lv.level}. {lv.title}
-        </button>
-      ))}
-    </div>
-    <div className="mode-bar">
-      <span className="mode-label">Tryb:</span>
-      {[{id:"syllable",label:"Sylaby"},{id:"full",label:"Pełna wymowa"},{id:"hidden",label:"Test!"}].map(m=>(
-        <button key={m.id} className={"stb"+(revealMode===m.id?" active":"")} onClick={()=>setRevealMode(m.id)}>{m.label}</button>
-      ))}
-    </div>
-    <div className="vlist">
-      {level.items.map((item,i)=>{
-        const isRevealed=revealedItems[i];
-        return (
-          <div key={currentLevel+"-"+i} className={"vc"+(isRevealed?" rev":"")} onClick={()=>setRevealedItems(p=>({...p,[i]:!p[i]}))}>
-            {revealMode==="syllable"?(
-              <div className="syl-wrap">
-                {item.syllables.map((syl,j)=>syl===" "?<span key={j} className="syl-sp"/>:(
-                  <span key={j} className="syl-b"><span className="syl-g">{syl}</span><span className="syl-r"><R t={item.rom[j]}/></span></span>
-                ))}
-              </div>
-            ):revealMode==="full"?(
-              <div className="rd-full">
-                <div className="rd-gr">{item.gr}</div>
-                <div className="rd-rom"><R t={item.rom.join("")}/></div>
-              </div>
-            ):(
-              <div className="rd-full"><div className="rd-gr">{item.gr}</div><div className="rd-hint">przeczytaj sam/a, potem kliknij</div>
-              </div>
-            )}
-            {isRevealed?(
-              <div className="rd-trans">
-                {revealMode==="hidden"&&<div className="rd-reveal"><R t={item.rom.join("")}/></div>}
-                <div className="rd-pl">{item.pl}</div>
-              </div>
-            ):<div className="vh">▸ sprawdź</div>}
-          </div>
-        );
-      })}
-    </div>
-  </div>);
+function LessonSections({lesson}){
+  return <>{lesson.sections.map((s,i)=>(
+    <section key={i} className="lsec">
+      {s.title && <h3 className="lsec-title">{s.title}</h3>}
+      {s.type==="text" && <p className="lsec-body">{s.body}</p>}
+      {s.type==="grammar" && <GrammarBlock s={s}/>}
+      {s.type==="letters" && <LettersBlock/>}
+      {s.type==="numbers" && <NumbersBlock/>}
+      {s.type==="reading" && <ReadingBlock level={s.level}/>}
+      {(s.type==="words"||s.type==="phrases") && <CardList s={s}/>}
+    </section>
+  ))}</>;
 }
 
-
-function VerbDrillView() {
-  const persons=["εγώ","εσύ","αυτός/ή","εμείς","εσείς","αυτοί/ές"];
-  const [show,setShow]=useState(false);
-  const [vIdx,setVIdx]=useState(0);
-  const [pIdx,setPIdx]=useState(0);
-  const v=drillVerbs[vIdx]; const p=persons[pIdx];
-  const next=()=>{setShow(false);const np=Math.floor(Math.random()*persons.length);const nv=Math.floor(Math.random()*drillVerbs.length);setPIdx(np);setVIdx(nv);};
-  return (<div>
-    <div className="sh"><h2 className="st">Dryl czasowników</h2><p className="sd">Jak najszybciej podaj formę</p></div>
-    <div className="vlist">
-      <div className="vc vc-center">
-        <div className="hint-label">Odmień czasownik:</div>
-        <div className="gr-hero">{v.inf}</div>
-        <div className="sub-label">({v.pl})</div>
-        <div className="person-badge">
-          <span className="gr-person">{p}</span>
-        </div>
-        {!show?<div className="mt-actions"><button className="stb active" onClick={()=>setShow(true)}>Pokaż odpowiedź</button></div>
-        :<div className="mt-actions">
-          <div className="gr-answer">{v.forms[p]}</div>
-          <div className="mt-actions-row">
-            <button className="stb" onClick={next}>Następny →</button>
-          </div>
-        </div>}
-      </div>
-      <div className="vc">
-        <div className="hint-label">Pełna koniugacja: {v.inf}</div>
-        {persons.map(pr=><div key={pr} className="conj-row">
-          <span className="conj-row-person">{pr}</span>
-          <span className="conj-row-form">{v.forms[pr]}</span>
-        </div>)}
-      </div>
+function LessonView({lesson, order, completed, onHome, onPrev, onNext}){
+  useEffect(()=>{ try{window.scrollTo(0,0);}catch(e){} }, [lesson.id]);
+  const pos = order.indexOf(lesson.id);
+  const isLast = pos === order.length-1;
+  const label = lesson.bonus ? "Bonus" : ("Lekcja "+lesson.id);
+  return <div className="lesson">
+    <header className="lhdr">
+      <button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button>
+      <span className="lprog">{label}{completed && <span className="ldone-badge"><Check size={13}/> ukonczona</span>}</span>
+    </header>
+    <div className="lhero">
+      <span className="lhero-emoji">{lesson.emoji}</span>
+      <h1 className="lhero-title" lang="el">{lesson.title}</h1>
+      <p className="lhero-desc">{lesson.desc}</p>
     </div>
-  </div>);
+    <LessonSections lesson={lesson}/>
+    <div className="lnav">
+      {onPrev ? <button className="lnav-prev" onClick={onPrev}><ChevronLeft size={18}/> Wstecz</button> : <span className="lnav-spacer"/>}
+      <button className="lnav-next" onClick={onNext}>{isLast?"Zakoncz kurs":"Ukoncz i dalej"} <ChevronRight size={18}/></button>
+    </div>
+  </div>;
 }
 
-function WordPatternsView() {
-  const [open,setOpen]=useState(null);
-  return (<div>
-    <div className="sh"><h2 className="st">Wzorce słowotwórcze</h2><p className="sd">Znając wzorzec, zgadniesz setki nowych słów</p></div>
-    <div className="vlist">
-      {wordPatterns.map((wp,i)=>(
-        <div key={i} className={"vc"+(open===i?" rev":"")} onClick={()=>setOpen(open===i?null:i)}>
-          <div className="vg">{wp.suffix}</div>
-          <div className="vr">= {wp.meaning}</div>
-          {open===i&&<div className="wp-details">{wp.examples.map((e,j)=>(
-            <div key={j} className="wp-example">
-              <div className="na-head"><span className="na-gr">{e.gr}</span><span className="na-rom"><R t={e.rom}/></span></div>
-              <div className="na-pl">{e.pl}</div>
-              <div className="wp-root">← {e.root}</div>
-            </div>
-          ))}</div>}
-        </div>
-      ))}
-    </div>
-  </div>);
+/* ===== Slownik 400+ najczestszych slow (jedyna referencja) ===== */
+function DictWord({w}){
+  const [open,setOpen]=useState(false);
+  const toggle=()=>setOpen(o=>!o);
+  return <div className={"dword"+(open?" rev":"")} role="button" tabIndex={0} aria-pressed={open}
+    onClick={toggle}
+    onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}}}>
+    <div className="dword-top"><span className="dword-gr" lang="el">{w.gr}</span><Speak text={w.gr} size={14}/></div>
+    {open
+      ? <><div className="dword-rom"><R t={w.rom}/></div><div className="dword-pl">{w.pl}</div></>
+      : <div className="dword-hint">▸</div>}
+  </div>;
 }
-
-function CommonWordsView() {
-  const [openGr,setOpenGr]=useState(null);
-  const [rev,setRev]=useState({});
-  const totalWords=commonWordGroups.reduce((a,g)=>a+g.words.length,0);
-  return (<div>
-    <div className="sh"><h2 className="st">{totalWords} najczęstszych słów</h2><p className="sd">~80% codziennej mowy greckiej</p></div>
-    <div className="vlist">
+function DictionaryView({onHome}){
+  const [open,setOpen]=useState(0);
+  const total = commonWordGroups.reduce((a,g)=>a+g.words.length,0);
+  return <div className="lesson">
+    <header className="lhdr">
+      <button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button>
+      <span className="lprog">Slownik</span>
+    </header>
+    <div className="lhero">
+      <span className="lhero-emoji">📚</span>
+      <h1 className="lhero-title">Slownik — {total} slow</h1>
+      <p className="lhero-desc">~80% codziennej greckiej mowy. Kliknij grupe, potem slowo, posluchaj 🔊.</p>
+    </div>
+    <div className="dictlist">
       {commonWordGroups.map((g,gi)=>(
         <div key={gi}>
-          <div className="cat-card" onClick={()=>setOpenGr(openGr===gi?null:gi)}>
-            <span className="cc-title">{g.title}</span>
-            <span className="cc-count">{g.words.length}</span>
-          </div>
-          {openGr===gi&&<div className="cw-grid">
-            {g.words.map((w,wi)=>{
-              const k=gi+"-"+wi; const isR=rev[k];
-              return <div key={k} className={"nc cw-card"+(isR?" rev":"")} onClick={()=>setRev(p=>({...p,[k]:!p[k]}))}>
-                <div className="cw-gr">{w.gr}</div>
-                {isR?<><div className="cw-rom"><R t={w.rom}/></div><div className="cw-pl">{w.pl}</div></>
-                :<div className="cw-hint">kliknij</div>}
-              </div>
-            })}
-          </div>}
+          <button className={"dictgroup"+(open===gi?" open":"")} onClick={()=>setOpen(open===gi?null:gi)}>
+            <span>{g.title}</span><span className="dictcount">{g.words.length}</span>
+          </button>
+          {open===gi && <div className="dictgrid">{g.words.map((w,wi)=><DictWord key={wi} w={w}/>)}</div>}
         </div>
       ))}
     </div>
-  </div>);
+  </div>;
 }
 
-function DictHub() {
-  const [tab,setTab]=useState("alphabet");
-  return (<div>
-    <div className="subtabs subtabs-inner">
-      {[{id:"alphabet",label:"Alfabet",ico:"Αα"},{id:"vocab",label:"Słowa",ico:"📚"},{id:"grammar",label:"Gramatyka",ico:"📐"},{id:"phrases",label:"Wyrażenia",ico:"💬"},{id:"patterns",label:"Wzorce",ico:"🔬"},{id:"common",label:"⭐ Top 400+"}].map(t=>(
-        <button key={t.id} className={"stb"+(tab===t.id?" active":"")} onClick={()=>setTab(t.id)}><Ico e={t.ico} size={16}/> {t.label}</button>
-      ))}
-    </div>
-    {tab==="alphabet"&&<AlphabetView/>}
-    {tab==="vocab"&&<VocabView/>}
-    {tab==="grammar"&&<GrammarView/>}
-    {tab==="phrases"&&<PhrasesView/>}
-    {tab==="patterns"&&<WordPatternsView/>}
-    {tab==="common"&&<CommonWordsView/>}
-  </div>);
-}
-
-
-function LessonPage({lessonId,onBack}) {
-  const [rev,setRev]=useState({});
-  const lesson=lessons.find(l=>l.id===lessonId);
-  if(!lesson) return null;
-  return (<div>
-    <div className="sh">
-      <button className="back-btn" onClick={onBack}>← Lekcje</button>
-      <h2 className="st"><span className="ico-inline"><Ico e={lesson.emoji} size={26}/></span>{lesson.title}</h2>
-      <p className="sd">{lesson.desc}</p>
-    </div>
-    <div className="vlist">
-      {lesson.sections.map((s,si)=>(
-        <div key={si}>
-          <div className="section-title">{s.title}</div>
-          {s.text&&<div className="section-text">{s.text}</div>}
-          {s.catIds&&(()=>{const allItems=s.catIds.flatMap(cid=>{const cat=categories.find(x=>x.id===cid);return cat?cat.phrases:[];});return allItems.map((p,pi)=>{
-            const k="l"+lesson.id+"s"+si+"i"+pi; const isR=rev[k];
-            return <div key={k} className={"vc"+(isR?" rev":"")} onClick={()=>setRev(pr=>({...pr,[k]:!pr[k]}))}>
-              <div className="vg">{p.gr}</div><div className="vr"><R t={p.rom}/></div>
-              {isR?<><div className="vp">{p.pl}</div>{p.note&&<span className="vnote">{p.note}</span>}</>:<div className="vh">▸ pokaż</div>}
-            </div>})})()}
+/* ===== Ekran glowny — jedna sciezka ===== */
+function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onReaders, onStats, dark, toggleDark}){
+  const [showBonus,setShowBonus]=useState(false);
+  const [showA2,setShowA2]=useState(false);
+  const core = lessons.filter(l=>!l.bonus);
+  const bonus = lessons.filter(l=>l.bonus);
+  const next = core.find(l=>!done.has(l.id)) || core[core.length-1];
+  const doneCount = core.filter(l=>done.has(l.id)).length;
+  const pct = Math.round(doneCount/core.length*100);
+  const due = dueCount(pool, srs);
+  const streak = (stats&&stats.streak)||0;
+  const card=(l)=>{
+    const isDone=done.has(l.id);
+    const isCurrent=l.id===next.id && !isDone;
+    return <button key={l.id} className={"lcard"+(isDone?" done":"")+(isCurrent?" current":"")} onClick={()=>onOpen(l.id)}>
+      <span className="lcard-emoji" lang="el">{l.emoji}</span>
+      <span className="lcard-body">
+        <span className="lcard-title" lang="el">{l.title}{l.adult?" · 18+":""}</span>
+        <span className="lcard-desc">{l.desc}</span>
+      </span>
+      <span className="lcard-state">{isDone ? <Check size={18}/> : (l.bonus?<Lock size={15}/>:<span className="lcard-num">{l.id}</span>)}</span>
+    </button>;
+  };
+  return <div className="home">
+    <header className="hhdr">
+      <div className="hhdr-top">
+        <div>
+          <div className="hkicker">Ελληνικά · Grecki A1–A2</div>
+          <h1 className="htitle" lang="el">Γεια σου!</h1>
         </div>
-      ))}
+        <div className="hhdr-r">
+          {streak>0 && <span className="streak"><Flame size={15}/> {streak}</span>}
+          <button className="darkbtn" onClick={toggleDark} aria-label="Tryb ciemny">{dark?<Sun size={18}/>:<Moon size={18}/>}</button>
+        </div>
+      </div>
+      <button className="session-cta" onClick={onSession}>
+        <div className="session-cta-l">
+          <div className="session-cta-k">Sesja powtorek</div>
+          <div className="session-cta-t">{due>0 ? (due+" do powtorki dzis") : "Zacznij nauke →"}</div>
+        </div>
+        <span className="session-cta-go"><RotateCcw size={20}/></span>
+      </button>
+      <div className="hprogress">
+        <div className="hprogress-bar"><span style={{width:pct+"%"}}/></div>
+        <div className="hprogress-txt">Lekcje A1: {doneCount}/{core.length}</div>
+      </div>
+      <button className="continue" onClick={()=>onOpen(next.id)}>
+        <div className="continue-l">
+          <div className="continue-k">{done.has(next.id)?"Powtorz":"Kontynuuj"}</div>
+          <div className="continue-t">{next.emoji} {next.title}</div>
+        </div>
+        <ChevronRight size={24}/>
+      </button>
+    </header>
+
+    <div className="sec-label">Kurs A1 — podstawy</div>
+    <div className="llist">{core.map(card)}</div>
+
+    <button className="sec-tog" onClick={()=>setShowA2(s=>!s)}>{showA2?"▾":"▸"} Rozdzial A2 — rozwiniecie ({a2Lessons.length})</button>
+    {showA2 && <div className="llist">{a2Lessons.map(card)}</div>}
+
+    <button className="sec-tog" onClick={()=>setShowBonus(s=>!s)}>{showBonus?"▾":"▸"} Bonus — poza kursem ({bonus.length})</button>
+    {showBonus && <div className="llist">{bonus.map(card)}</div>}
+
+    <div className="more-grid">
+      <button className="more-tile" onClick={onSession}><RotateCcw size={20}/><span>Cwiczenia</span></button>
+      <button className="more-tile" onClick={onDialogs}><MessageCircle size={20}/><span>Dialogi</span></button>
+      <button className="more-tile" onClick={onReaders}><BookOpen size={20}/><span>Czytanki</span></button>
+      <button className="more-tile" onClick={onDict}><span className="more-emoji">📚</span><span>Slownik</span></button>
+      <button className="more-tile" onClick={onStats}><BarChart3 size={20}/><span>Statystyki</span></button>
     </div>
-  </div>);
+    <footer className="hfoot">Καλή τύχη! · Ucz sie codziennie po kilka minut.</footer>
+  </div>;
 }
 
-function PracticeHub() {
-  const [mode,setMode]=useState("reading");
-  return (<div>
-    <div className="subtabs subtabs-inner">
-      {[{id:"reading",label:"Czytanie",ico:"📖"},{id:"verbs",label:"Odmiana",ico:"📋"},{id:"drill",label:"Dryl",ico:"🔄"},{id:"comp",label:"📝 Teksty"}].map(t=>(
-        <button key={t.id} className={"stb"+(mode===t.id?" active":"")} onClick={()=>setMode(t.id)}>{t.label}</button>
-      ))}
-    </div>
-    {mode==="reading"&&<ReadingView/>}
-    {mode==="verbs"&&<VerbTablesView/>}
-    {mode==="drill"&&<VerbDrillView/>}
-    
-  </div>);
+/* ===== Routing przez hash (back button, odswiezenie, deep-link) ===== */
+function parseHash(){
+  try{
+    const h = window.location.hash || "";
+    if(/slownik/.test(h)) return {t:"dict"};
+    if(/session/.test(h)) return {t:"session"};
+    if(/stats/.test(h)) return {t:"stats"};
+    let m=h.match(/dialog\/([a-z0-9]+)/i); if(m) return {t:"dialog", id:m[1]};
+    if(/dialogs/.test(h)) return {t:"dialogs"};
+    m=h.match(/reader\/([a-z0-9]+)/i); if(m) return {t:"reader", id:m[1]};
+    if(/readers/.test(h)) return {t:"readers"};
+    m = h.match(/lesson\/(\d+)/);
+    if(m) return {t:"lesson", id:parseInt(m[1],10)};
+  }catch(e){}
+  return {t:"home"};
 }
 
-function PhrasesView() {
-  const [group,setGroup]=useState(null);
-  const [cat,setCat]=useState(null);
-  const [rev,setRev]=useState({});
-  const c=cat?categories.find(x=>x.id===cat):null;
-  const g=group?phraseGroups.find(x=>x.id===group):null;
-  const groupCats=g?categories.filter(x=>g.cats.includes(x.id)):[];
+/* ===== CWICZENIA / SESJA POWTOREK (SRS) ===== */
+function exLabel(t){
+  return t==="choose-pl"?"Wybierz tlumaczenie"
+    :t==="listen"?"Posluchaj i wybierz znaczenie"
+    :t==="choose-gr"?"Jak to powiesz po grecku?"
+    :t==="type-gr"?"Napisz po grecku"
+    :t==="build"?"Uloz zdanie z klockow"
+    :t==="cloze"?"Uzupelnij luke"
+    :"";
+}
 
-  if(!group) return (<div>
-    <div className="sh"><h2 className="st">Εκφράσεις</h2><p className="sd">Wybierz temat</p></div>
-    <div className="group-grid">{phraseGroups.map(pg=>(
-      <div key={pg.id} className="group-card" onClick={()=>{setGroup(pg.id);setCat(null);setRev({})}}>
-        <Ico e={pg.icon} size={28} bg/>
-        <div className="gc-title">{pg.title}</div>
-        <div className="gc-desc">{pg.desc}</div>
-        <div className="gc-count">{categories.filter(x=>pg.cats.includes(x.id)).reduce((a,c)=>a+c.phrases.length,0)} fraz</div>
-      </div>
-    ))}</div>
-  </div>);
+function ExerciseCard({ex, onNext}){
+  const [result,setResult]=useState(null);
+  const [typed,setTyped]=useState("");
+  const [answer,setAnswer]=useState([]);
+  const [bank,setBank]=useState(ex.tokens||[]);
+  const item=ex.item;
+  const submit=(resp)=>{ if(result) return; setResult({correct:checkAnswer(ex,resp), resp}); };
+  const greekOpts = ex.type==="choose-gr"||ex.type==="cloze";
 
-  if(!cat) return (<div>
-    <div className="sh">
-      <button className="back-btn" onClick={()=>setGroup(null)}>← Wstecz</button>
-      <h2 className="st">{g.icon} {g.title}</h2>
+  return <div className="ex">
+    <div className="ex-q">{exLabel(ex.type)}</div>
+    <div className="ex-prompt">
+      {ex.type==="listen"
+        ? <button className="ex-audio" onClick={()=>speak(ex.audio)} aria-label="Posluchaj"><Volume2 size={30}/><span>Posluchaj</span></button>
+        : ex.type==="cloze"
+          ? <div className="ex-gr" lang="el">{ex.masked}</div>
+          : (ex.type==="choose-gr"||ex.type==="type-gr"||ex.type==="build")
+            ? <div className="ex-pl">{ex.prompt}</div>
+            : <div className="ex-gr"><span lang="el">{ex.prompt}</span> <Speak text={ex.audio}/></div>}
+      {ex.showRom && <div className="ex-rom"><R t={item.rom}/></div>}
     </div>
-    <div className="cat-list">{groupCats.map(gc=>(
-      <div key={gc.id} className="cat-card" onClick={()=>{setCat(gc.id);setRev({})}}>
-        <Ico e={gc.icon} size={20}/>
-        <span className="cc-title">{gc.title}</span>
-        <span className="cc-count">{gc.phrases.length}</span>
-      </div>
-    ))}</div>
-  </div>);
 
-  return (<div>
-    <div className="sh">
-      <button className="back-btn" onClick={()=>setCat(null)}>← {g.title}</button>
-      <h2 className="st"><span className="ico-inline"><Ico e={c.icon} size={24}/></span>{c.title}</h2>
+    {(ex.type==="choose-pl"||ex.type==="listen"||ex.type==="choose-gr"||ex.type==="cloze") &&
+      <div className="ex-opts">{ex.options.map((o,i)=>{
+        let st=""; if(result){ if(o===ex.answer) st="ok"; else if(o===result.resp) st="bad"; }
+        return <button key={i} className={"opt"+(st?" opt-"+st:"")} disabled={!!result} onClick={()=>submit(o)}>
+          {greekOpts?<span lang="el">{o}</span>:o}
+        </button>;
+      })}</div>}
+
+    {ex.type==="type-gr" && <div className="ex-type">
+      <input className="ex-input" lang="el" value={typed} disabled={!!result} placeholder="Wpisz po grecku..."
+        onChange={e=>setTyped(e.target.value)}
+        onKeyDown={e=>{ if(e.key==="Enter"&&!result&&typed.trim()) submit(typed); }}/>
+      {ex.hint && !result && <div className="ex-hint">podpowiedz: <R t={ex.hint}/></div>}
+      {!result && <button className="ex-check" disabled={!typed.trim()} onClick={()=>submit(typed)}>Sprawdz</button>}
+    </div>}
+
+    {ex.type==="build" && <div className="ex-build">
+      <div className="ex-line" lang="el">{answer.length?answer.join(" "):<span className="ex-line-ph">dotykaj slow w kolejnosci...</span>}</div>
+      <div className="ex-bank">{bank.map((tok,i)=>(
+        <button key={i} className="chip" lang="el" disabled={!!result} onClick={()=>{ setAnswer(a=>[...a,tok]); setBank(b=>b.filter((_,j)=>j!==i)); }}>{tok}</button>
+      ))}</div>
+      {!result && <div className="ex-build-actions">
+        <button className="ex-undo" disabled={!answer.length} onClick={()=>{ const last=answer[answer.length-1]; setAnswer(a=>a.slice(0,-1)); setBank(b=>[...b,last]); }}>← Cofnij</button>
+        <button className="ex-check" disabled={bank.length>0} onClick={()=>submit(answer)}>Sprawdz</button>
+      </div>}
+    </div>}
+
+    {result && <div className={"ex-fb "+(result.correct?"good":"bad")}>
+      <div className="ex-fb-t">{result.correct?"✓ Dobrze!":"✗ Poprawna odpowiedz:"}</div>
+      <div className="ex-fb-full"><span lang="el">{item.gr}</span> — {item.pl} <Speak text={item.gr} size={15}/></div>
+      <button className="lnav-next ex-next" onClick={()=>onNext(result.correct)}>Dalej <ChevronRight size={18}/></button>
+    </div>}
+  </div>;
+}
+
+function SessionView({pool, srs, onFinish, onHome}){
+  const [work]=useState(()=>buildSession(pool, srs, {maxNew:8, maxReview:14}));
+  const [extra,setExtra]=useState([]);
+  const [idx,setIdx]=useState(0);
+  const [localSrs,setLocalSrs]=useState(srs);
+  const [acc,setAcc]=useState({c:0,t:0});
+  const [ex,setEx]=useState(()=> work.length?makeExercise(work[0],pool):null);
+  const list=work.concat(extra);
+  const finished = idx>=list.length;
+
+  const next=(correct)=>{
+    const cur=list[idx];
+    const ng=grade(localSrs, cur.id, correct);
+    setLocalSrs(ng);
+    const nc=acc.c+(correct?1:0), nt=acc.t+1;
+    setAcc({c:nc,t:nt});
+    let newExtra=extra;
+    if(!correct && !cur._retried){ newExtra=[...extra,{...cur,_retried:true}]; setExtra(newExtra); }
+    const newList=work.concat(newExtra);
+    const ni=idx+1;
+    setIdx(ni);
+    if(ni<newList.length){ setEx(makeExercise(newList[ni], pool)); }
+    else { setEx(null); onFinish&&onFinish(ng, {reviewed:nt, correct:nc}); }
+  };
+
+  if(list.length===0) return <div className="lesson">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button><span className="lprog">Sesja</span></header>
+    <div className="ses-done"><div className="ses-done-emoji">✅</div><h1 className="lhero-title">Na dzis nic do powtorki</h1><p className="lhero-desc">Wroc jutro albo otworz nowa lekcje, by dolozyc material.</p><button className="lnav-next" onClick={onHome}>Wroc do kursu <ChevronRight size={18}/></button></div>
+  </div>;
+
+  if(finished){
+    const pct=acc.t?Math.round(acc.c/acc.t*100):0;
+    return <div className="lesson">
+      <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button><span className="lprog">Sesja</span></header>
+      <div className="ses-done"><div className="ses-done-emoji">🎉</div><h1 className="lhero-title">Gotowe! {acc.c}/{acc.t}</h1><p className="lhero-desc">Skutecznosc {pct}%. Wroc jutro po kolejna porcje powtorek.</p><button className="lnav-next" onClick={onHome}>Wroc do kursu <ChevronRight size={18}/></button></div>
+    </div>;
+  }
+
+  const prog=Math.round(idx/list.length*100);
+  return <div className="lesson session">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Przerwij</button><span className="lprog">{idx+1}/{list.length}</span></header>
+    <div className="ses-bar"><span style={{width:prog+"%"}}/></div>
+    <ExerciseCard key={idx} ex={ex} onNext={next}/>
+  </div>;
+}
+
+function StatsView({stats, srs, pool, onHome}){
+  const learned=countLearned(srs);
+  const acc=stats.totalReviews?Math.round(stats.totalCorrect/stats.totalReviews*100):0;
+  const due=dueCount(pool, srs);
+  const days=[];
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); days.push({k, n:(stats.history&&stats.history[k])||0}); }
+  const max=Math.max(1,...days.map(d=>d.n));
+  return <div className="lesson">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button><span className="lprog">Statystyki</span></header>
+    <div className="lhero"><span className="lhero-emoji">📈</span><h1 className="lhero-title">Twoje postepy</h1></div>
+    <div className="stat-grid">
+      <div className="stat-card"><div className="stat-n"><Flame size={17}/> {stats.streak||0}</div><div className="stat-l">dni z rzedu</div></div>
+      <div className="stat-card"><div className="stat-n">{learned}</div><div className="stat-l">opanowanych</div></div>
+      <div className="stat-card"><div className="stat-n">{stats.totalReviews||0}</div><div className="stat-l">powtorek lacznie</div></div>
+      <div className="stat-card"><div className="stat-n">{acc}%</div><div className="stat-l">skutecznosc</div></div>
     </div>
-    <div className="vlist">{c.phrases.map((p,i)=>{
-      const k=c.id+i; const isR=rev[k];
-      return <div key={k} className={"vc"+(isR?" rev":"")} onClick={()=>setRev(pr=>({...pr,[k]:!pr[k]}))}>
-        <div className="vg">{p.gr}</div><div className="vr"><R t={p.rom}/></div>
-        {isR?<><div className="vp">{p.pl}</div>{p.note&&<span className="vnote">{p.note}</span>}</>:<div className="vh">▸ pokaż</div>}
-      </div>
+    <div className="lsec"><h3 className="lsec-title">Ostatnie 7 dni</h3>
+      <div className="bars">{days.map((d,i)=><div key={i} className="bar-col"><div className="bar" style={{height:(d.n/max*70+4)+"px"}}/><div className="bar-x">{d.k.slice(8)}</div></div>)}</div>
+    </div>
+    {due>0 && <div className="lsec"><button className="lnav-next" onClick={onHome}>Masz {due} do powtorki — wroc i cwicz →</button></div>}
+  </div>;
+}
+
+/* ===== Mowienie (rozpoznawanie mowy) ===== */
+function SpeakCheck({target}){
+  const [state,setState]=useState("idle");
+  const rec=getRecognizer();
+  if(!rec.supported) return null;
+  const run=()=>{
+    if(state==="listening") return;
+    setState("listening");
+    rec.listen({
+      onResult:(alts)=>{
+        const t=normalizeGreek(target);
+        const hit=alts.some(a=>normalizeGreek(a)===t);
+        const near=alts.some(a=>{ const n=normalizeGreek(a); return n&&(t.indexOf(n)>=0||n.indexOf(t.split(" ")[0])>=0); });
+        setState(hit?"ok":(near?"near":"fail"));
+      },
+      onError:()=>setState("fail"),
+      onEnd:()=>setState(s=>s==="listening"?"fail":s),
+    });
+  };
+  const label=state==="listening"?"Sluchom...":state==="ok"?"✓ Brawo!":state==="near"?"Prawie!":state==="fail"?"Sprobuj jeszcze":"🎤 Powiedz";
+  return <button className={"speakbtn speak-"+state} onClick={run}><Mic size={14}/> {label}</button>;
+}
+
+function RoleplaySteps({steps}){
+  const [i,setI]=useState(0);
+  const [res,setRes]=useState(null);
+  if(i>=steps.length) return <div className="ses-done"><div className="ses-done-emoji">👏</div><h3 className="lsec-title">Koniec scenki — dobra robota!</h3></div>;
+  const s=steps[i];
+  return <div className="lsec">
+    <div className="rp-prompt">{s.prompt}</div>
+    <div className="ex-opts">{s.options.map((o,k)=>{
+      let st=""; if(res){ if(o===s.answer) st="ok"; else if(o===res) st="bad"; }
+      return <button key={k} className={"opt"+(st?" opt-"+st:"")} disabled={!!res} onClick={()=>setRes(o)}>{o}</button>;
     })}</div>
-  </div>);
+    {res && <button className="lnav-next" onClick={()=>{ setRes(null); setI(i+1); }}>Dalej <ChevronRight size={18}/></button>}
+  </div>;
 }
 
-/* ===== MAIN ===== */
-export default function App() {
-  const [view,setView]=useState(null);
-  const [dark,setDark]=useState(false);
-  const home=()=>setView(null);
-  const lessonMatch=view?view.match(/^lesson-(\d+)$/):null;
-  const lessonId=lessonMatch?parseInt(lessonMatch[1]):null;
-
-  return (
-    <div className={"root"+(dark?" dark":"")}>
-      <style>{`
-@import url('https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=DM+Sans:wght@400;500;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-.root{font-family:'DM Sans',sans-serif;min-height:100vh;background:#f8f6f1;color:#1a1a1a;padding-bottom:88px;font-size:17px;-webkit-tap-highlight-color:transparent}
-.hdr{background:linear-gradient(160deg,#1b3a5c 0%,#1e5a8a 60%,#2874a6 100%);padding:40px 24px 28px;color:#fff;position:relative;overflow:visible}
-.hdr::before{content:'';position:absolute;top:-40%;right:-20%;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,.06) 0%,transparent 70%);border-radius:50%}
-.hdr-l{font-size:12px;text-transform:uppercase;letter-spacing:3px;opacity:.4;margin-bottom:6px}
-.hdr-t{font-family:'Literata',serif;font-size:28px;font-weight:700;position:relative}
-.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;z-index:100;border-top:1px solid rgba(0,0,0,.06);padding-bottom:env(safe-area-inset-bottom,0)}
-.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0 10px;border:none;background:none;color:#999;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.2s}
-.nb.a{color:#1e5a8a}
-.nb-i{font-size:20px;height:26px;display:flex;align-items:center;justify-content:center;font-family:'Literata',serif;font-weight:700}
-.nb-l{font-size:11px;font-weight:600;letter-spacing:.2px}
-.sh{padding:20px 24px 8px}
-.st{font-family:'Literata',serif;font-size:28px;font-weight:700;color:#1b3a5c}
-.sd{font-size:16px;color:#999;margin-top:4px;line-height:1.5}
-.back-btn{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:15px;color:#2874a6;cursor:pointer;padding:0;margin-bottom:8px;font-weight:600}
-.subtabs{display:flex;gap:8px;padding:10px 24px 14px;overflow-x:auto;scrollbar-width:none}
-.subtabs::-webkit-scrollbar{display:none}
-.stb{flex-shrink:0;padding:14px 22px;border-radius:100px;border:none;background:rgba(30,90,138,.06);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:#1b3a5c;cursor:pointer;white-space:nowrap;transition:all .25s}
-.stb:active{transform:scale(.96)}
-.stb.active{background:#1e5a8a;color:#fff;box-shadow:0 4px 14px rgba(30,90,138,.25)}
-.group-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:8px 24px 28px}
-@media(min-width:640px){.group-grid{grid-template-columns:repeat(3,1fr)}}
-.group-card{background:#fff;border-radius:22px;padding:24px 20px;cursor:pointer;transition:all .3s;box-shadow:0 2px 12px rgba(0,0,0,.04);text-align:center;display:flex;flex-direction:column;align-items:center}
-.group-card:active{transform:scale(.97)}
-.group-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
-.gc-icon{font-size:36px;margin-bottom:8px}
-.gc-title{font-family:'Literata',serif;font-size:18px;font-weight:700;color:#1b3a5c}
-.gc-desc{font-size:14px;color:#999;margin-top:4px;line-height:1.4}
-.gc-count{font-size:12px;color:#2874a6;font-weight:600;margin-top:8px;background:rgba(40,116,166,.08);padding:4px 12px;border-radius:20px}
-.cat-list{padding:6px 24px 28px;display:flex;flex-direction:column;gap:4px}
-.cat-card{background:#fff;border-radius:18px;padding:18px 22px;cursor:pointer;transition:all .25s;box-shadow:0 2px 10px rgba(0,0,0,.04);display:flex;align-items:center;gap:14px}
-.cat-card:active{transform:scale(.98)}
-.cat-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
-.cc-icon{font-size:24px;flex-shrink:0}
-.cc-title{font-size:18px;font-weight:600;color:#1b3a5c;flex:1}
-.cc-count{font-size:14px;color:#999;background:#f4f3ee;padding:4px 12px;border-radius:20px;flex-shrink:0}
-.alpha-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 24px 24px}
-@media(min-width:480px){.alpha-grid{grid-template-columns:repeat(4,1fr)}}
-@media(min-width:640px){.alpha-grid{grid-template-columns:repeat(6,1fr)}}
-.ac{background:#fff;border-radius:20px;padding:16px 8px;text-align:center;border:none;box-shadow:0 2px 10px rgba(0,0,0,.04);cursor:pointer;transition:all .3s;min-height:115px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ac:active{transform:scale(.96)}.ac:hover{box-shadow:0 6px 20px rgba(0,0,0,.08)}
-.ac.fl{background:#1b3a5c;color:#fff;box-shadow:0 4px 16px rgba(27,58,92,.3)}
-.al{display:flex;gap:6px;align-items:baseline}
-.au{font-family:'Literata',serif;font-size:40px;font-weight:700;color:#1b3a5c}.ac.fl .au{color:#fff}
-.alo{font-family:'Literata',serif;font-size:24px;color:#93afc5}.ac.fl .alo{color:rgba(255,255,255,.6)}
-.an{font-size:14px;color:#bbb;margin-top:5px}
-.asb{font-size:14px;font-weight:600;color:#4a7c59;background:#eef5f0;padding:3px 12px;border-radius:10px;margin-top:5px}
-.at{font-size:14px;color:rgba(255,255,255,.75);line-height:1.5;margin-bottom:6px;padding:0 6px}
-.ae{display:flex;flex-direction:column;align-items:center;gap:3px}
-.aeg{font-family:'Literata',serif;font-size:19px;font-weight:600;color:#7bb8d9}
-.aer{font-size:16px;color:rgba(255,255,255,.45);font-style:italic}
-.aep{font-size:16px;color:rgba(255,255,255,.8)}
-.dtog{display:block;margin:8px 24px 14px;padding:16px 22px;width:calc(100% - 48px);background:#fff;border:none;border-radius:18px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;color:#c4853a;cursor:pointer;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.dlist{padding:0 24px 24px;display:flex;flex-direction:column;gap:10px}
-.dc{background:#fff;border-radius:18px;padding:18px 22px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.dctop{display:flex;align-items:center;justify-content:space-between}
-.dcc{font-family:'Literata',serif;font-size:22px;font-weight:700;color:#1b3a5c}
-.dcsb{font-size:15px;font-weight:600;color:#4a7c59;background:#eef5f0;padding:4px 14px;border-radius:10px}
-.dct{font-size:15px;color:#999;margin-top:6px;line-height:1.4}
-.dce{display:flex;align-items:baseline;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f0ede8;flex-wrap:wrap}
-.dcg{font-family:'Literata',serif;font-size:19px;font-weight:600;color:#1b3a5c}
-.dcr{font-size:16px;color:#999;font-style:italic}.dcp{font-size:16px;color:#666}
-.num-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 24px 28px}
-@media(min-width:480px){.num-grid{grid-template-columns:repeat(4,1fr)}}
-@media(min-width:640px){.num-grid{grid-template-columns:repeat(5,1fr)}}
-.nc{background:#fff;border-radius:18px;padding:16px 8px;text-align:center;border:none;box-shadow:0 2px 10px rgba(0,0,0,.04);cursor:pointer;transition:all .25s;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.nc:active{transform:scale(.96)}.nc:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}.nc.rev{background:#f0f7fb;box-shadow:0 2px 12px rgba(30,90,138,.1)}
-.nn{font-family:'Literata',serif;font-size:30px;font-weight:700;color:#1b3a5c}
-.ng{font-family:'Literata',serif;font-size:17px;font-weight:600;color:#2874a6;margin-top:6px}
-.nr{font-size:14px;color:#999;font-style:italic;margin-top:2px}.nh{font-size:14px;color:#ccc;margin-top:6px}
-.vlist{padding:10px 24px 28px;display:flex;flex-direction:column;gap:12px}
-.vc{background:#fff;border-radius:16px;padding:16px 20px;border:none;box-shadow:0 2px 10px rgba(0,0,0,.04);cursor:pointer;transition:all .25s}
-.vc:active{transform:scale(.99)}.vc:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}.vc.rev{background:#f6fafe;box-shadow:0 2px 14px rgba(30,90,138,.08)}
-.vg{font-family:'Literata',serif;font-size:26px;font-weight:600;color:#1b3a5c}
-.vr{font-size:19px;color:#888;font-style:italic;margin-top:4px}
-.vp{font-size:20px;color:#222;margin-top:10px;padding-top:10px;border-top:1px solid #eee;font-weight:500}
-.vh{font-size:16px;color:#bbb;margin-top:6px}
-.vnote{font-size:15px;color:#fff;background:#c4853a;display:inline-block;padding:4px 14px;border-radius:10px;margin-top:8px}
-.glist{padding:10px 24px 28px;display:flex;flex-direction:column;gap:16px}
-.gram-intro{font-size:17px;color:#666;line-height:1.7;padding:10px 0}
-.gram-intro strong{color:#1b3a5c}
-.gcard{background:#fff;border-radius:22px;padding:24px 22px;box-shadow:0 2px 10px rgba(0,0,0,.04);border-left:5px solid}
-.ghead{display:flex;align-items:center;gap:12px;font-weight:700}
-.gart{font-family:'Literata',serif;font-size:38px;font-weight:700}
-.gname{font-size:18px}
-.gend{font-size:15px;color:#999;margin-top:6px}
-.gex{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
-@media(min-width:640px){.gex{grid-template-columns:repeat(3,1fr)}}
-.gex-item{background:#f8f6f1;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
-.gex-gr{font-family:'Literata',serif;font-size:18px;font-weight:600;color:#1b3a5c}
-.gex-rom{font-size:16px;color:#999;font-style:italic}
-.gex-pl{font-size:17px;color:#555}
-.dcard{background:#fff;border-radius:22px;padding:24px 22px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.dcard-head{font-family:'Literata',serif;font-size:22px;font-weight:700;color:#1b3a5c}
-.dcard-word{font-size:16px;color:#999;margin-top:4px;margin-bottom:14px}
-.dtable{width:100%;border-collapse:collapse;font-size:16px}
-.dtable th{text-align:left;padding:12px 10px;background:#f8f6f1;font-size:14px;font-weight:600;color:#999;border-bottom:2px solid #eee}
-.dtable td{padding:14px 10px;border-bottom:1px solid #f4f3ee;vertical-align:top}
-.dtd-case{font-weight:600;color:#1b3a5c;font-size:16px}
-.dtd-use{font-size:13px;color:#bbb;font-weight:400;margin-top:2px}
-.dtd-gr{font-family:'Literata',serif;font-size:19px;font-weight:600;color:#2874a6}
-.dtd-rom{font-size:16px;color:#999;font-style:italic;margin-top:2px}
-.vpatterns{background:#fff;border-radius:22px;padding:24px 22px;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:12px}
-.vpat-title{font-family:'Literata',serif;font-size:20px;font-weight:700;color:#1b3a5c;margin-bottom:16px}
-.vpat-row{margin-bottom:18px}
-.vpat-type{font-size:15px;font-weight:600;color:#666;margin-bottom:8px}
-.vpat-ends{display:flex;flex-wrap:wrap;gap:6px}
-.vpat-cell{background:#f8f6f1;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;min-width:60px;flex:1}
-.vpat-p{font-size:13px;color:#999;margin-bottom:2px}.vpat-e{font-family:'Literata',serif;font-size:20px;font-weight:700;color:#1b3a5c}
-.vpat-note{font-size:15px;color:#888;margin-top:10px;line-height:1.6;padding:12px 0;border-top:1px solid #f0ede8}
-.verb-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.vnb{padding:12px 20px;border-radius:100px;border:none;background:rgba(30,90,138,.06);font-family:'Literata',serif;font-size:18px;font-weight:600;color:#1b3a5c;cursor:pointer;transition:all .25s}
-.vnb:active{transform:scale(.96)}
-.vnb.active{background:#1e5a8a;color:#fff;box-shadow:0 4px 14px rgba(30,90,138,.25)}
-.verb-card{background:#fff;border-radius:22px;padding:26px 24px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-.verb-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:14px}
-.verb-gr{font-family:'Literata',serif;font-size:32px;font-weight:700;color:#1b3a5c}
-.verb-rom{font-size:18px;color:#999;font-style:italic}
-.verb-pl{font-size:18px;color:#333;font-weight:500}
-.verb-type{font-size:14px;color:#fff;background:#c4853a;padding:4px 14px;border-radius:10px}
-.conj-btn{display:block;width:100%;padding:16px 20px;border-radius:16px;border:none;background:rgba(30,90,138,.04);color:#1b3a5c;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;text-align:left;margin-bottom:14px;transition:.2s}
-.conj-btn:active{background:rgba(30,90,138,.08)}
-.conj-table{width:100%;border-collapse:collapse;margin-bottom:16px}
-.conj-table td{padding:12px;border-bottom:1px solid #f4f3ee;font-size:16px}
-.conj-per{color:#999;font-size:15px;min-width:100px}
-.conj-form{font-family:'Literata',serif;font-size:22px;font-weight:600;color:#1b3a5c}
-.conj-rom{font-size:17px;color:#999;font-style:italic}
-.verb-times{padding:14px 0;border-top:1px solid #f0ede8}
-.vt-row{font-size:15px;color:#666;margin:6px 0;line-height:1.6}
-.vt-label{font-weight:600;margin-right:8px}
-.vt-val{color:#999;font-style:italic}
-.verb-ex-title{font-size:16px;font-weight:700;color:#1b3a5c;margin:14px 0 8px;padding-top:14px;border-top:1px solid #f0ede8}
-.verb-ex{padding:16px 18px;background:#f8f6f1;border-radius:16px;margin-bottom:8px}
-.vex-gr{font-family:'Literata',serif;font-size:21px;font-weight:600;color:#2874a6}
-.vex-rom{font-size:17px;color:#999;font-style:italic;margin-top:2px}
-.vex-pl{font-size:18px;color:#555;margin-top:4px}
-
-/* UNIFIED COMPONENTS */
-.ex-sentence{font-size:17px;color:#2874a6;margin-top:8px;padding:12px 16px;background:rgba(40,116,166,.04);border-radius:14px;font-style:italic;line-height:1.5}
-.overflow-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.na-item{padding:14px 0;border-bottom:1px solid #f0ede8}
-.na-item:last-child{border-bottom:none}
-.na-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
-.na-gr{font-family:'Literata',serif;font-size:22px;font-weight:700;color:#1b3a5c}
-.na-rom{font-size:18px;color:#999;font-style:italic}
-.na-pl{font-size:18px;color:#555;margin-top:3px}
-.ord-row{display:flex;align-items:baseline;gap:10px}
-.ord-num{font-family:'Literata',serif;font-size:22px;font-weight:700;color:#bbb}
-.section-color{font-weight:700}
-.syl-wrap{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end}
-.syl-sp{width:16px}
-.syl-b{display:flex;flex-direction:column;align-items:center;background:#f0ede8;border-radius:12px;padding:10px 14px 8px;min-width:40px}
-.syl-g{font-family:'Literata',serif;font-size:28px;font-weight:600;color:#1b3a5c;line-height:1.2}
-.syl-r{font-size:16px;color:#999;font-style:italic;line-height:1.3}
-.rd-full{text-align:center;padding:8px 0}
-.rd-gr{font-family:'Literata',serif;font-size:32px;font-weight:600;color:#1b3a5c;line-height:1.4}
-.rd-rom{font-size:20px;color:#999;font-style:italic;margin-top:5px}
-.rd-hint{font-size:17px;color:#ccc;margin-top:6px;font-style:italic}
-.rd-trans{margin-top:14px;padding-top:14px;border-top:1px solid #eee}
-.rd-reveal{font-size:19px;color:#2874a6;font-style:italic;margin-bottom:4px}
-.rd-pl{font-size:20px;color:#333;font-weight:500}
-.mode-bar{display:flex;align-items:center;gap:8px;padding:6px 24px 14px}
-.mode-label{font-size:15px;color:#999}
-
-/* REUSABLE UTILITY CLASSES */
-.hint-label{font-size:14px;color:#999;margin-bottom:8px}
-.sub-label{font-size:16px;color:#999;margin-top:4px}
-.gr-hero{font-family:'Literata',serif;font-size:32px;font-weight:700;color:#1b3a5c}
-.gr-answer{font-family:'Literata',serif;font-size:28px;font-weight:700;color:#4a7c59}
-.gr-person{font-size:20px;font-weight:700;color:#2874a6}
-.person-badge{margin-top:20px;padding:12px 24px;background:rgba(30,90,138,.06);border-radius:16px;display:inline-block}
-.mt-actions{margin-top:24px}
-.mt-actions-row{margin-top:16px;display:flex;gap:8px;justify-content:center}
-.conj-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f4f3ee}
-.conj-row-person{color:#999;font-size:15px}
-.conj-row-form{font-family:'Literata',serif;font-size:17px;font-weight:600;color:#1b3a5c}
-.wp-root{font-size:13px;color:#2874a6;margin-top:2px}
-.wp-example{padding:10px 0;border-bottom:1px solid #f0ede8}
-.wp-example:last-child{border-bottom:none}
-.wp-details{margin-top:12px}
-.cw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px 0}
-.cw-card{min-height:90px;padding:18px 10px}
-.cw-gr{font-family:'Literata',serif;font-size:22px;font-weight:700;color:#1b3a5c}
-.cw-rom{font-size:15px;color:#999;font-style:italic}
-.cw-pl{font-size:17px;color:#333;font-weight:500}
-.cw-hint{font-size:14px;color:#ccc}
-.ico-inline{display:inline-flex;vertical-align:middle;margin-right:10px}
-.section-title{font-family:'Literata',serif;font-size:19px;font-weight:700;color:#1b3a5c;padding:18px 0 4px}
-.section-text{font-size:16px;color:#555;line-height:1.6;padding-bottom:2px}
-.journey-label{padding:8px 24px 4px}
-.journey-label-text{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#999}
-.vc-center{text-align:center;padding:32px}
-.subtabs-inner{padding:12px 24px}
-
-/* Dark mode for new utility classes */
-.dark .gr-hero,.dark .conj-row-form,.dark .cw-gr,.dark .section-title{color:#e2e8f0}
-.dark .hint-label,.dark .sub-label,.dark .conj-row-person,.dark .cw-rom,.dark .journey-label-text{color:#6b7280}
-.dark .gr-answer{color:#6ee7b7}
-.dark .gr-person{color:#60a5fa}
-.dark .person-badge{background:rgba(147,197,253,.06)}
-.dark .conj-row{border-bottom-color:#1e293b}
-.dark .wp-example{border-bottom-color:#1e293b}
-.dark .wp-root{color:#60a5fa}
-.dark .cw-pl,.dark .section-text{color:#c9cdd3}
-.dark .cw-hint{color:#4a5568}
-
-/* DASHBOARD */
-.dash{padding:8px 20px 40px}
-.dash-section{margin-bottom:24px}
-.dash-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#999;padding:12px 4px 10px}
-.dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media(min-width:500px){.dash-grid{grid-template-columns:repeat(3,1fr)}}
-.dash-card{background:#fff;border-radius:20px;padding:22px 18px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);transition:all .3s;display:flex;flex-direction:column}
-.dash-card:active{transform:scale(.97)}
-.dash-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
-.dash-icon{font-size:30px;margin-bottom:8px}
-.dash-title{font-family:'Literata',serif;font-size:17px;font-weight:700;color:#1b3a5c}
-.dash-desc{font-size:13px;color:#999;margin-top:3px;line-height:1.3}
-.hdr-back{background:none;border:none;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;font-size:15px;cursor:pointer;padding:0;margin-bottom:6px;font-weight:500}
-.hdr-back:hover{color:#fff}
-      
-.dash-quick{display:flex;gap:10px;padding:12px 24px}
-.dq-btn{flex:1;background:#fff;border:none;border-radius:16px;padding:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;transition:all .25s;font-family:'DM Sans',sans-serif}
-.dq-btn:active{transform:scale(.97)}
-.dq-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
-.dq-icon{font-size:24px}
-.dq-text{text-align:left}
-.dq-title{font-size:15px;font-weight:700;color:#1b3a5c}
-.dq-desc{font-size:12px;color:#999;margin-top:1px}
-.lesson-list{padding:6px 24px 40px;display:flex;flex-direction:column;gap:4px}
-.lesson-card{background:#fff;border-radius:18px;padding:18px 20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);display:flex;align-items:center;gap:14px;transition:all .25s}
-.lesson-card:active{transform:scale(.98)}
-.lesson-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
-.lc-emoji{flex-shrink:0}
-.lc-body{flex:1;min-width:0}
-.lc-title{font-family:'Literata',serif;font-size:16px;font-weight:700;color:#1b3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lc-desc{font-size:13px;color:#999;margin-top:2px}
-.lc-num{font-size:13px;color:#bbb;flex-shrink:0}
-.inner-page .hdr{padding:32px 24px 22px}
-.home-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:32px auto 40px;background:#1b3a5c;color:#fff;border:none;border-radius:100px;padding:14px 28px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(27,58,92,.3)}
-.home-btn:active{transform:scale(.96)}
-      
-.dash-quick{display:flex;gap:10px;padding:12px 24px}
-.dq-btn{flex:1;background:#fff;border:none;border-radius:16px;padding:16px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;transition:all .25s;font-family:'DM Sans',sans-serif}
-.dq-btn:active{transform:scale(.97)}
-.dq-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
-.dq-icon{font-size:24px}
-.dq-text{text-align:left}
-.dq-title{font-size:15px;font-weight:700;color:#1b3a5c}
-.dq-desc{font-size:12px;color:#999;margin-top:1px}
-.lesson-list{padding:6px 24px 40px;display:flex;flex-direction:column;gap:4px}
-.lesson-card{background:#fff;border-radius:18px;padding:18px 20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);display:flex;align-items:center;gap:14px;transition:all .25s}
-.lesson-card:active{transform:scale(.98)}
-.lesson-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
-.lc-emoji{flex-shrink:0}
-.lc-body{flex:1;min-width:0}
-.lc-title{font-family:'Literata',serif;font-size:16px;font-weight:700;color:#1b3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lc-desc{font-size:13px;color:#999;margin-top:2px}
-.lc-num{font-size:13px;color:#bbb;flex-shrink:0}
-
-
-/* MOBILE-FIRST RESPONSIVE */
-@media(max-width:430px){
-  .hdr{padding:48px 20px 24px}
-  .hdr-t{font-size:26px}
-  .sh{padding:20px 20px 8px}
-  .vlist{padding:4px 20px 28px}
-  .subtabs{padding:10px 20px 14px}
-  .dash-quick{padding:10px 20px}
-  .lesson-list{padding:8px 20px 40px}
-  .alpha-grid{padding:10px 20px 20px;gap:8px}
-  .num-grid{padding:10px 20px 24px;gap:8px}
-  .vc{padding:14px 18px}
-  .vg{font-size:24px}
-  .group-grid{padding:8px 20px 28px;gap:10px}
-}
-@media(min-width:768px){
-  .root{max-width:900px;margin:0 auto}
-  .hdr{border-radius:0 0 28px 28px}
-  .vg{font-size:28px}
-  .vr{font-size:20px}
-  .vp{font-size:22px}
-  .st{font-size:32px}
-  .rd-gr{font-size:36px}
-  .alpha-grid{grid-template-columns:repeat(6,1fr)}
-  .num-grid{grid-template-columns:repeat(5,1fr)}
-  .group-grid{grid-template-columns:repeat(3,1fr)}
-  .lesson-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  .dash-quick{max-width:600px}
-}
-@media(min-width:1024px){
-  .root{max-width:1100px}
-  .alpha-grid{grid-template-columns:repeat(8,1fr)}
-  .num-grid{grid-template-columns:repeat(6,1fr)}
-  .gex{grid-template-columns:repeat(3,1fr)}
-  .dash-grid{grid-template-columns:repeat(4,1fr)}
-}
-@media(min-width:1440px){
-  .root{max-width:1200px}
-  .lesson-list{grid-template-columns:repeat(3,1fr)}
-  .group-grid{grid-template-columns:repeat(4,1fr)}
-  .alpha-grid{grid-template-columns:repeat(10,1fr)}
-}
-/* Safe area for iPhone notch */
-@supports(padding-top:env(safe-area-inset-top)){
-  .hdr{padding-top:calc(40px + env(safe-area-inset-top))}
-}
-
-
-/* FLOATING DARK MODE TOGGLE — always visible */
-.dark-float{position:absolute;top:50%;right:20px;transform:translateY(-50%);z-index:200;width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;background:rgba(255,255,255,.15);color:#fbbf24;backdrop-filter:blur(8px)}
-.dark-float:hover{transform:translateY(-50%) scale(1.1);background:rgba(255,255,255,.25)}
-.dark-float:active{transform:translateY(-50%) scale(.95)}
-.dark .dark-float{background:rgba(255,255,255,.1);color:#fbbf24}
-.dark .dark-float:hover{background:rgba(255,255,255,.2)}
-
-/* DARK MODE TOGGLE */
-
-
-/* DARK MODE */
-.dark{background:#0f1419;color:#d1d5db}
-.dark .hdr{background:linear-gradient(160deg,#0a1929 0%,#0d2847 60%,#153d6b 100%)}
-.dark .vc,.dark .ac,.dark .nc,.dark .dc,.dark .dcard,.dark .gcard,.dark .verb-card,.dark .vpatterns,.dark .cat-card,.dark .group-card,.dark .dash-card,.dark .lesson-card,.dark .dq-btn{background:#1a2332;box-shadow:0 2px 10px rgba(0,0,0,.3)}
-.dark .vc:hover,.dark .ac:hover,.dark .nc:hover,.dark .cat-card:hover,.dark .group-card:hover,.dark .dash-card:hover,.dark .lesson-card:hover,.dark .dq-btn:hover{box-shadow:0 4px 20px rgba(0,0,0,.4)}
-.dark .vc.rev,.dark .nc.rev{background:#162030;box-shadow:0 2px 14px rgba(40,116,166,.15)}
-.dark .ac.fl{background:#1e3a5c;box-shadow:0 4px 16px rgba(30,58,92,.5)}
-
-/* Dark text colors */
-.dark .vg,.dark .nn,.dark .dcc,.dark .dcard-head,.dark .verb-gr,.dark .conj-form,.dark .na-gr,.dark .au,.dark .vpat-e,.dark .gex-gr,.dark .dcg,.dark .lc-title,.dark .cc-title,.dark .gc-title,.dark .dash-title,.dark .dq-title{color:#e2e8f0}
-.dark .vr,.dark .nr,.dark .aer,.dark .vex-rom,.dark .na-rom,.dark .dtd-rom,.dark .conj-rom,.dark .gex-rom,.dark .rd-rom,.dark .syl-r,.dark .dcr{color:#6b7280}
-.dark .vp,.dark .rd-pl,.dark .vex-pl,.dark .na-pl,.dark .gex-pl,.dark .dcp,.dark .verb-pl{color:#c9cdd3}
-.dark .vh,.dark .nh,.dark .lc-num{color:#4a5568}
-.dark .st{color:#93c5fd}
-.dark .sd,.dark .gc-desc,.dark .dash-desc,.dark .dq-desc,.dark .lc-desc{color:#6b7280}
-.dark .gram-intro{color:#9ca3af}
-.dark .gram-intro strong{color:#93c5fd}
-.dark .an,.dark .conj-per,.dark .dtd-case{color:#6b7280}
-.dark .vnote{background:#92400e}
-.dark .back-btn,.dark .hdr-back{color:rgba(147,197,253,.7)}
-
-/* Dark backgrounds */
-.dark .stb{background:rgba(147,197,253,.08);color:#93c5fd}
-.dark .stb.active{background:#2563eb;color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.3)}
-.dark .syl-b,.dark .gex-item,.dark .vpat-cell,.dark .verb-ex{background:#111827}
-.dark .ex-sentence{background:rgba(37,99,235,.08);color:#60a5fa}
-.dark .dtog{background:#1a2332;color:#d97706}
-.dark .asb,.dark .dcsb{background:rgba(74,124,89,.2);color:#6ee7b7}
-.dark .dtable th{background:#111827;color:#6b7280;border-bottom-color:#2a3544}
-.dark .dtable td,.dark .conj-table td,.dark .na-item{border-bottom-color:#1e293b}
-.dark .vp,.dark .rd-trans{border-top-color:#1e293b}
-.dark .gc-count,.dark .cc-count{background:#1e293b;color:#6b7280}
-
-/* Dark interactive */
-.dark .home-btn{background:#2563eb;box-shadow:0 4px 20px rgba(37,99,235,.4)}
-.dark .dtd-gr,.dark .aeg,.dark .syl-g,.dark .rd-gr,.dark .vex-gr,.dark .rd-reveal{color:#60a5fa}
-.dark .alo{color:#4a5568}
-.dark .at,.dark .aep{color:rgba(255,255,255,.7)}
-
-/* Dark mode for common words grid */
-.dark .mode-label{color:#6b7280}
-      `}</style>
-
-      {!view&&<>
-        <div className="hdr">
-          <div className="hdr-l">Ελληνικά — Grecki A1</div>
-          <div className="hdr-t">Γεια σου!</div>
-          <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
-        </div>
-        <div className="dash-quick">
-          <button className="dq-btn" onClick={()=>setView("practice")}>
-            <Ico e="📖" size={22}/>
-            <div className="dq-text"><div className="dq-title">Ćwiczenia</div><div className="dq-desc">Czytanie, dryl, teksty</div></div>
-          </button>
-          <button className="dq-btn" onClick={()=>setView("dict")}>
-            <Ico e="📚" size={22}/>
-            <div className="dq-text"><div className="dq-title">Słownik</div><div className="dq-desc">Alfabet, słowa, gramatyka</div></div>
-          </button>
-        </div>
-        <div className="journey-label"><div className="journey-label-text">Twoja podróż</div></div>
-        <div className="lesson-list">
-          {lessons.map(l=>(
-            <div key={l.id} className="lesson-card" onClick={()=>setView("lesson-"+l.id)}>
-              <Ico e={l.emoji} size={22} bg/>
-              <div className="lc-body"><div className="lc-title">{l.title}</div><div className="lc-desc">{l.desc}</div></div>
-              <span className="lc-num">{l.id}/12</span>
-            </div>
-          ))}
-        </div>
-      </>}
-
-      {view==="practice"&&<>
-        <div className="hdr">
-          <button className="hdr-back" onClick={home}>← Strona główna</button>
-          <div className="hdr-t"><span className="ico-inline"><Dumbbell size={24}/></span>Ćwiczenia</div>
-          <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
-        </div>
-        <PracticeHub/>
-        <button className="home-btn" onClick={home}><Home size={18}/> Strona główna</button>
-      </>}
-
-      {view==="dict"&&<>
-        <div className="hdr">
-          <button className="hdr-back" onClick={home}>← Strona główna</button>
-          <div className="hdr-t"><span className="ico-inline"><Library size={24}/></span>Słownik</div>
-          <button className="dark-float" onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode">{dark?<Sun size={16} strokeWidth={2.5}/>:<Moon size={16} strokeWidth={2.5}/>}</button>
-        </div>
-        <DictHub/>
-        <button className="home-btn" onClick={home}><Home size={18}/> Strona główna</button>
-      </>}
-
-      {lessonId&&<>
-        <LessonPage lessonId={lessonId} onBack={home}/>
-        <button className="home-btn" onClick={home}><Home size={18}/> Strona główna</button>
-      </>}
-
+function DialogueView({dialogue, onHome}){
+  const [mode,setMode]=useState("listen");
+  const d=dialogue;
+  const playAll=()=>{ d.lines.forEach((ln,i)=>setTimeout(()=>speak(ln.gr), i*1900)); };
+  return <div className="lesson">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Dialogi</button></header>
+    <div className="lhero"><span className="lhero-emoji">{d.emoji}</span><h1 className="lhero-title">{d.title}</h1><p className="lhero-desc">{d.desc}</p></div>
+    <div className="seg">
+      <button className={"seg-b"+(mode==="listen"?" active":"")} onClick={()=>setMode("listen")}>Sluchaj i mow</button>
+      {d.roleplay && <button className={"seg-b"+(mode==="role"?" active":"")} onClick={()=>setMode("role")}>Odegraj role</button>}
     </div>
-  );
+    {mode==="listen" ? <>
+      <div className="lsec"><button className="lnav-next" onClick={playAll}><Volume2 size={18}/> Odtworz caly dialog</button></div>
+      <div className="dlg">{d.lines.map((ln,i)=>(
+        <div key={i} className={"dlg-line "+(ln.who==="A"?"a":"b")}>
+          <div className="dlg-gr"><span lang="el">{ln.gr}</span> <Speak text={ln.gr} size={15}/></div>
+          <div className="dlg-rom"><R t={ln.rom}/></div>
+          <div className="dlg-pl">{ln.pl}</div>
+          <SpeakCheck target={ln.gr}/>
+        </div>
+      ))}</div>
+    </> : <RoleplaySteps steps={d.roleplay}/>}
+  </div>;
+}
+
+function DialoguesView({onOpen, onHome}){
+  return <div className="lesson">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button><span className="lprog">Dialogi</span></header>
+    <div className="lhero"><span className="lhero-emoji">💬</span><h1 className="lhero-title">Dialogi</h1><p className="lhero-desc">Posluchaj, powtorz na glos, odegraj role.</p></div>
+    <div className="llist">{a2Dialogues.map(d=>(
+      <button key={d.id} className="lcard" onClick={()=>onOpen(d.id)}>
+        <span className="lcard-emoji">{d.emoji}</span>
+        <span className="lcard-body"><span className="lcard-title">{d.title}</span><span className="lcard-desc">{d.desc}</span></span>
+        <span className="lcard-state"><ChevronRight size={18}/></span>
+      </button>
+    ))}</div>
+  </div>;
+}
+
+function ReaderView({reader, onHome}){
+  const [rev,setRev]=useState({});
+  const [ans,setAns]=useState({});
+  return <div className="lesson">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Czytanki</button></header>
+    <div className="lhero"><span className="lhero-emoji">{reader.emoji}</span><h1 className="lhero-title">{reader.title}</h1><p className="lhero-desc">Kliknij zdanie, by zobaczyc tlumaczenie.</p></div>
+    <div className="vlist">{reader.text.map((s,i)=>(
+      <div key={i} className={"vc"+(rev[i]?" rev":"")} role="button" tabIndex={0} aria-pressed={!!rev[i]}
+        onClick={()=>setRev(p=>({...p,[i]:!p[i]}))}
+        onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setRev(p=>({...p,[i]:!p[i]})); } }}>
+        <div className="vc-top"><div className="vg" lang="el">{s.gr}</div><Speak text={s.gr}/></div>
+        <div className="vr"><R t={s.rom}/></div>
+        {rev[i] && <div className="vp">{s.pl}</div>}
+      </div>
+    ))}</div>
+    <div className="lsec"><h3 className="lsec-title">Pytania ze zrozumienia</h3>
+      {reader.questions.map((q,qi)=>{
+        const picked=ans[qi];
+        return <div key={qi} className="gbox q-box">
+          <div className="rp-prompt" lang="el">{q.q}</div>
+          <div className="ex-opts">{q.options.map((o,k)=>{
+            let st=""; if(picked){ if(o===q.answer) st="ok"; else if(o===picked) st="bad"; }
+            return <button key={k} className={"opt"+(st?" opt-"+st:"")} disabled={!!picked} onClick={()=>setAns(p=>({...p,[qi]:o}))}>{o}</button>;
+          })}</div>
+        </div>;
+      })}
+    </div>
+  </div>;
+}
+
+function ReadersView({onOpen, onHome}){
+  return <div className="lesson">
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button><span className="lprog">Czytanki</span></header>
+    <div className="lhero"><span className="lhero-emoji">📖</span><h1 className="lhero-title">Czytanki</h1><p className="lhero-desc">Krotkie teksty A2 z pytaniami ze zrozumienia.</p></div>
+    <div className="llist">{a2Readers.map(r=>(
+      <button key={r.id} className="lcard" onClick={()=>onOpen(r.id)}>
+        <span className="lcard-emoji">{r.emoji}</span>
+        <span className="lcard-body"><span className="lcard-title">{r.title}</span><span className="lcard-desc">{r.desc}</span></span>
+        <span className="lcard-state"><ChevronRight size={18}/></span>
+      </button>
+    ))}</div>
+  </div>;
+}
+
+export default function App(){
+  const [dark,setDark]=useState(()=>{
+    try{
+      const s=localStorage.getItem("greek-dark");
+      if(s!==null) return s==="1";
+      return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }catch(e){ return false; }
+  });
+  const [done,setDone]=useState(()=>{
+    try{ return new Set(JSON.parse(localStorage.getItem("greek-done")||"[]")); }catch(e){ return new Set(); }
+  });
+  const [srs,setSrs]=useState(()=>loadProgress());
+  const [stats,setStats]=useState(()=>loadStats());
+  const [pool]=useState(()=>buildPool({categories, commonWordGroups, numbers, a2Lessons}));
+  const [route,setRoute]=useState(()=>parseHash());
+
+  useEffect(()=>{
+    const fn=()=>setRoute(parseHash());
+    window.addEventListener("hashchange",fn);
+    return ()=>window.removeEventListener("hashchange",fn);
+  },[]);
+  useEffect(()=>{ try{localStorage.setItem("greek-dark",dark?"1":"0");}catch(e){} },[dark]);
+  useEffect(()=>{ try{localStorage.setItem("greek-done",JSON.stringify([...done]));}catch(e){} },[done]);
+  useEffect(()=>{ saveProgress(srs); },[srs]);
+  useEffect(()=>{
+    try{
+      if(window.speechSynthesis){
+        _elVoice=pickVoice();
+        window.speechSynthesis.onvoiceschanged=()=>{_elVoice=pickVoice();};
+      }
+    }catch(e){}
+  },[]);
+
+  const allLessons = lessons.concat(a2Lessons);
+  const order = allLessons.map(l=>l.id);
+
+  const navigate=(r)=>{
+    let hash="#/";
+    if(r.t==="lesson") hash="#/lesson/"+r.id;
+    else if(r.t==="dict") hash="#/slownik";
+    else if(r.t==="session") hash="#/session";
+    else if(r.t==="stats") hash="#/stats";
+    else if(r.t==="dialogs") hash="#/dialogs";
+    else if(r.t==="dialog") hash="#/dialog/"+r.id;
+    else if(r.t==="readers") hash="#/readers";
+    else if(r.t==="reader") hash="#/reader/"+r.id;
+    try{ window.location.hash=hash; }catch(e){}
+    setRoute(r);
+  };
+  const openLesson=(id)=>navigate({t:"lesson",id});
+  const openDict=()=>navigate({t:"dict"});
+  const openSession=()=>navigate({t:"session"});
+  const openStats=()=>navigate({t:"stats"});
+  const openDialogs=()=>navigate({t:"dialogs"});
+  const openDialog=(id)=>navigate({t:"dialog",id});
+  const openReaders=()=>navigate({t:"readers"});
+  const openReader=(id)=>navigate({t:"reader",id});
+  const goHome=()=>navigate({t:"home"});
+  const markDone=(id)=>setDone(prev=>{ const n=new Set(prev); n.add(id); return n; });
+
+  const homeEl = <Home done={done} srs={srs} stats={stats} pool={pool} onOpen={openLesson} onSession={openSession} onDict={openDict} onDialogs={openDialogs} onReaders={openReaders} onStats={openStats} dark={dark} toggleDark={()=>setDark(d=>!d)}/>;
+
+  let body;
+  if(route.t==="dict") body = <DictionaryView onHome={goHome}/>;
+  else if(route.t==="session") body = <SessionView pool={pool} srs={srs} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
+  else if(route.t==="stats") body = <StatsView stats={stats} srs={srs} pool={pool} onHome={goHome}/>;
+  else if(route.t==="dialogs") body = <DialoguesView onOpen={openDialog} onHome={goHome}/>;
+  else if(route.t==="dialog"){ const d=a2Dialogues.find(x=>x.id===route.id); body = d?<DialogueView dialogue={d} onHome={goHome}/>:homeEl; }
+  else if(route.t==="readers") body = <ReadersView onOpen={openReader} onHome={goHome}/>;
+  else if(route.t==="reader"){ const r=a2Readers.find(x=>x.id===route.id); body = r?<ReaderView reader={r} onHome={goHome}/>:homeEl; }
+  else if(route.t==="lesson"){
+    const lesson = allLessons.find(l=>l.id===route.id);
+    if(!lesson){ body = homeEl; }
+    else {
+      const pos = order.indexOf(lesson.id);
+      const prevId = pos>0 ? order[pos-1] : null;
+      const nextId = pos<order.length-1 ? order[pos+1] : null;
+      body = <LessonView
+        lesson={lesson}
+        order={order}
+        completed={done.has(lesson.id)}
+        onHome={goHome}
+        onPrev={prevId!=null ? ()=>openLesson(prevId) : null}
+        onNext={()=>{ markDone(lesson.id); if(nextId!=null) openLesson(nextId); else goHome(); }}
+      />;
+    }
+  } else { body = homeEl; }
+
+  return <div className={"root"+(dark?" dark":"")}>{body}</div>;
 }

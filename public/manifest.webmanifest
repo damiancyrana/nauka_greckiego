@@ -1,0 +1,15 @@
+{
+  "name": "Ελληνικά — Nauka Greckiego",
+  "short_name": "Greckie",
+  "description": "Kurs języka greckiego A1–A2 dla Polaków — lekcje, powtórki SRS, audio.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#1b3a5c",
+  "lang": "pl",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

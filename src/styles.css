@@ -396,3 +396,9 @@ button{font-family:inherit}
   .home{max-width:1240px;grid-template-columns:380px 1fr}
   .home-main .llist{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start}
 }
+
+/* ===== Regulacja tempa wymowy ===== */
+.speed-ctl{display:inline-flex;align-items:center;gap:4px;padding:7px 11px;border-radius:100px;border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent);font-family:var(--sans);font-size:13px;font-weight:700;white-space:nowrap}
+.speed-ctl:active{transform:scale(.95)}
+.hhdr .speed-ctl{background:rgba(255,255,255,.16);color:#fff}
+.lhdr .lback{margin-right:auto}

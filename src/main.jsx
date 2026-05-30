@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw } from "lucide-react";
+import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge } from "lucide-react";
 import { a2Lessons, a2Dialogues, a2Readers } from "./a2data.js";
 import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
 
@@ -1011,13 +1011,28 @@ const lessons = [
 
 /* ===== AUDIO: Web Speech API (el-GR) ===== */
 let _elVoice = null;
+/* preferuj zenski grecki glos (np. Apple „Melina"), unikaj znanych meskich */
+const _FEMALE = /melina|female|woman|γυναίκα|athina|αθηνά|maria|μαρία|eleni|ελένη|despina|δέσποινα|google/i;
+const _MALE = /\bmale\b|stefanos|στέφανος|nikos|νίκος|giorgos|γιώργος|dimitris|δημήτρης/i;
 function pickVoice(){
   try{
     if(!window.speechSynthesis) return null;
     const vs = window.speechSynthesis.getVoices() || [];
-    return vs.find(v=>v.lang && v.lang.toLowerCase().indexOf("el")===0) || null;
+    const el = vs.filter(v=>v.lang && v.lang.toLowerCase().indexOf("el")===0);
+    if(!el.length) return null;
+    return el.find(v=>_FEMALE.test(v.name)) || el.find(v=>!_MALE.test(v.name)) || el[0];
   }catch(e){ return null; }
 }
+
+/* tempo wymowy — domyslnie wolne, zapisywane w localStorage */
+const RATES = [0.5, 0.7, 0.85, 1.0];
+function loadRate(){
+  try{ const r=parseFloat(localStorage.getItem("greek-rate")); return RATES.indexOf(r)>=0 ? r : 0.7; }
+  catch(e){ return 0.7; }
+}
+let _rate = loadRate();
+function setRate(r){ _rate=r; try{ localStorage.setItem("greek-rate", String(r)); }catch(e){} }
+
 function speak(text){
   try{
     if(!window.speechSynthesis || !text) return;
@@ -1026,13 +1041,21 @@ function speak(text){
     u.lang = "el-GR";
     if(!_elVoice) _elVoice = pickVoice();
     if(_elVoice) u.voice = _elVoice;
-    u.rate = 0.88;
+    u.rate = _rate;
     window.speechSynthesis.speak(u);
   }catch(e){}
 }
 function Speak({text,size}){
   return <button className="spk" aria-label="Posluchaj wymowy" onClick={(e)=>{e.stopPropagation();speak(text);}}>
     <Volume2 size={size||18} strokeWidth={2}/>
+  </button>;
+}
+const RATE_LABEL = {0.5:"0.5×", 0.7:"0.7×", 0.85:"0.85×", 1:"1×"};
+function SpeedControl(){
+  const [r,setR]=useState(_rate);
+  const cycle=()=>{ const nr=RATES[(RATES.indexOf(r)+1)%RATES.length]; setRate(nr); setR(nr); };
+  return <button className="speed-ctl" onClick={cycle} title="Tempo wymowy" aria-label={"Tempo wymowy "+RATE_LABEL[r]+", kliknij aby zmienic"}>
+    <Gauge size={14}/> {RATE_LABEL[r]}
   </button>;
 }
 
@@ -1157,7 +1180,7 @@ function LessonView({lesson, order, completed, onHome, onPrev, onNext}){
   return <div className="lesson">
     <header className="lhdr">
       <button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button>
-      <span className="lprog">{label}{completed && <span className="ldone-badge"><Check size={13}/> ukonczona</span>}</span>
+      <SpeedControl/><span className="lprog">{label}{completed && <span className="ldone-badge"><Check size={13}/> ukonczona</span>}</span>
     </header>
     <div className="lhero">
       <span className="lhero-emoji">{lesson.emoji}</span>
@@ -1191,7 +1214,7 @@ function DictionaryView({onHome}){
   return <div className="lesson">
     <header className="lhdr">
       <button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button>
-      <span className="lprog">Slownik</span>
+      <SpeedControl/><span className="lprog">Slownik</span>
     </header>
     <div className="lhero">
       <span className="lhero-emoji">📚</span>
@@ -1243,6 +1266,7 @@ function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onR
         </div>
         <div className="hhdr-r">
           {streak>0 && <span className="streak"><Flame size={15}/> {streak}</span>}
+          <SpeedControl/>
           <button className="darkbtn" onClick={toggleDark} aria-label="Tryb ciemny">{dark?<Sun size={18}/>:<Moon size={18}/>}</button>
         </div>
       </div>
@@ -1413,7 +1437,7 @@ function SessionView({pool, srs, onFinish, onHome}){
 
   const prog=Math.round(idx/list.length*100);
   return <div className="lesson session">
-    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Przerwij</button><span className="lprog">{idx+1}/{list.length}</span></header>
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Przerwij</button><SpeedControl/><span className="lprog">{idx+1}/{list.length}</span></header>
     <div className="ses-bar"><span style={{width:prog+"%"}}/></div>
     <ExerciseCard key={idx} ex={ex} onNext={next}/>
   </div>;
@@ -1485,7 +1509,7 @@ function DialogueView({dialogue, onHome}){
   const d=dialogue;
   const playAll=()=>{ d.lines.forEach((ln,i)=>setTimeout(()=>speak(ln.gr), i*1900)); };
   return <div className="lesson">
-    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Dialogi</button></header>
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Dialogi</button><SpeedControl/></header>
     <div className="lhero"><span className="lhero-emoji">{d.emoji}</span><h1 className="lhero-title">{d.title}</h1><p className="lhero-desc">{d.desc}</p></div>
     <div className="seg">
       <button className={"seg-b"+(mode==="listen"?" active":"")} onClick={()=>setMode("listen")}>Sluchaj i mow</button>
@@ -1523,7 +1547,7 @@ function ReaderView({reader, onHome}){
   const [rev,setRev]=useState({});
   const [ans,setAns]=useState({});
   return <div className="lesson">
-    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Czytanki</button></header>
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Czytanki</button><SpeedControl/></header>
     <div className="lhero"><span className="lhero-emoji">{reader.emoji}</span><h1 className="lhero-title">{reader.title}</h1><p className="lhero-desc">Kliknij zdanie, by zobaczyc tlumaczenie.</p></div>
     <div className="vlist">{reader.text.map((s,i)=>(
       <div key={i} className={"vc"+(rev[i]?" rev":"")} role="button" tabIndex={0} aria-pressed={!!rev[i]}

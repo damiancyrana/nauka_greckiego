@@ -304,6 +304,7 @@ button{font-family:inherit}
 .ses-done .lnav-next{margin-top:22px;display:inline-flex}
 .ex{padding:16px clamp(14px,4vw,20px) 0}
 .ex-q{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--faint);text-align:center;margin-bottom:14px}
+.ex-tag{display:block;width:fit-content;margin:0 auto 10px;font-size:12px;font-weight:700;color:var(--note);background:rgba(180,115,46,.12);padding:5px 12px;border-radius:100px}
 .ex-prompt{background:var(--surface);border-radius:18px;padding:26px 20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:18px}
 .dark .ex-prompt{background:#1a2230;box-shadow:0 2px 10px rgba(0,0,0,.3)}
 .ex-gr{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--ink);line-height:1.35}

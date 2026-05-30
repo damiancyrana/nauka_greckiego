@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge, Square, Turtle } from "lucide-react";
 import { LEVELS, allLessons, dialogues, readers, categories, commonWordGroups, numbers, alphabet, digraphs, readingLevels } from "./data/levels.js";
-import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
+import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, isProductive, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
 
 /* Romanizacja: akcentowane samogloski na czerwono (znacznik akcentu/wymowy) */
 const acMap = {'á':'a','é':'e','í':'i','ó':'o','ú':'u','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'};
@@ -401,6 +401,7 @@ function ExerciseCard({ex, onNext}){
   const greekOpts = ex.type==="choose-gr"||ex.type==="cloze";
 
   return <div className="ex">
+    {(ex.leech||ex.replay) && <div className="ex-tag">{ex.replay?"✍️ Utrwal — napisz poprawnie":"🔧 Czesto mylone"}</div>}
     <div className="ex-q">{exLabel(ex.type)}</div>
     <div className="ex-prompt">
       {ex.type==="listen"
@@ -451,32 +452,43 @@ function ExerciseCard({ex, onNext}){
   </div>;
 }
 
+function typedExercise(item, flag){ return { type:"type-gr", item, prompt:item.pl, hint:item.rom, answer:item.gr, [flag]:true }; }
+
 function SessionView({pool, srs, onFinish, onHome}){
   const [work]=useState(()=>buildSession(pool, srs, {maxNew:8, maxReview:14}));
-  const [extra,setExtra]=useState([]);
   const [idx,setIdx]=useState(0);
+  const [phase,setPhase]=useState("main");          /* "main" | "replay" */
   const [localSrs,setLocalSrs]=useState(srs);
   const [acc,setAcc]=useState({c:0,t:0});
-  const [ex,setEx]=useState(()=> work.length?makeExercise(work[0],pool):null);
-  const list=work.concat(extra);
-  const finished = idx>=list.length;
+  /* Klinika slow-pasozytow: slowo mylone 3+ razy zawsze jako produkcja (type-gr). */
+  const exFor=(item, p)=>{
+    const st=p[item.id]||{};
+    if((st.lapses||0)>=3) return typedExercise(item, "leech");
+    return makeExercise(item, pool, st.box||0);
+  };
+  const [ex,setEx]=useState(()=> work.length?exFor(work[0], srs):null);
+  const finished = idx>=work.length;
 
-  const next=(correct)=>{
-    const cur=list[idx];
-    const ng=grade(localSrs, cur.id, correct);
-    setLocalSrs(ng);
-    const nc=acc.c+(correct?1:0), nt=acc.t+1;
-    setAcc({c:nc,t:nt});
-    let newExtra=extra;
-    if(!correct && !cur._retried){ newExtra=[...extra,{...cur,_retried:true}]; setExtra(newExtra); }
-    const newList=work.concat(newExtra);
-    const ni=idx+1;
+  const goNext=(ni, p, nc, nt)=>{
     setIdx(ni);
-    if(ni<newList.length){ setEx(makeExercise(newList[ni], pool)); }
-    else { setEx(null); onFinish&&onFinish(ng, {reviewed:nt, correct:nc}); }
+    if(ni<work.length){ setPhase("main"); setEx(exFor(work[ni], p)); }
+    else { setEx(null); onFinish&&onFinish(p, {reviewed:nt, correct:nc}); }
   };
 
-  if(list.length===0) return <div className="lesson">
+  const next=(correct)=>{
+    const cur=work[idx];
+    if(phase==="main"){
+      const ng=grade(localSrs, cur.id, correct, isProductive(ex.type));
+      setLocalSrs(ng);
+      const nc=acc.c+(correct?1:0), nt=acc.t+1; setAcc({c:nc,t:nt});
+      if(correct){ goNext(idx+1, ng, nc, nt); }
+      else { setPhase("replay"); setEx(typedExercise(cur, "replay")); }   /* Error Replay */
+    } else {
+      goNext(idx+1, localSrs, acc.c, acc.t);   /* po utrwaleniu — dalej, bez ponownej oceny */
+    }
+  };
+
+  if(work.length===0) return <div className="lesson">
     <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Kurs</button><span className="lprog">Sesja</span></header>
     <div className="ses-done"><div className="ses-done-emoji">✅</div><h1 className="lhero-title">Na dzis nic do powtorki</h1><p className="lhero-desc">Wroc jutro albo otworz nowa lekcje, by dolozyc material.</p><button className="lnav-next" onClick={onHome}>Wroc do kursu <ChevronRight size={18}/></button></div>
   </div>;
@@ -489,11 +501,11 @@ function SessionView({pool, srs, onFinish, onHome}){
     </div>;
   }
 
-  const prog=Math.round(idx/list.length*100);
+  const prog=Math.round(idx/work.length*100);
   return <div className="lesson session">
-    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Przerwij</button><SpeedControl/><span className="lprog">{idx+1}/{list.length}</span></header>
+    <header className="lhdr"><button className="lback" onClick={onHome}><ChevronLeft size={18}/> Przerwij</button><SpeedControl/><span className="lprog">{idx+1}/{work.length}</span></header>
     <div className="ses-bar"><span style={{width:prog+"%"}}/></div>
-    <ExerciseCard key={idx} ex={ex} onNext={next}/>
+    <ExerciseCard key={idx+"-"+phase} ex={ex} onNext={next}/>
   </div>;
 }
 

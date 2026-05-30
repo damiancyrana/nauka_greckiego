@@ -64,15 +64,23 @@ export function loadProgress(){
 export function saveProgress(p){
   try{ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }catch(e){}
 }
-export function grade(progress, id, correct){
+/* Production Gating: do „opanowania" (box>=4) slowo awansuje TYLKO przez
+   produkcje (wpisanie / ulozenie zdania). Rozpoznawanie podnosi do box 3
+   i podtrzymuje, ale samo nie „graduuje" — wymusza realne przypominanie. */
+export function grade(progress, id, correct, productive){
   const p={...progress};
   const st=p[id]||{box:0,reps:0,lapses:0};
   let box=st.box;
-  if(correct){ box=Math.min(BOX_INTERVAL.length-1, box+1); }
-  else { box=Math.max(1, box-1); }
+  if(correct){
+    if(box>=3){ if(productive) box=Math.min(BOX_INTERVAL.length-1, box+1); /* bez produkcji: podtrzymaj */ }
+    else box=box+1;
+  } else {
+    box=Math.max(1, box-1);
+  }
   p[id]={ box, reps:(st.reps||0)+1, lapses:(st.lapses||0)+(correct?0:1), due: now()+BOX_INTERVAL[box]*DAY, seen:true };
   return p;
 }
+export function isProductive(type){ return type==="type-gr" || type==="build"; }
 export function isLearned(progress, id){ const st=progress[id]; return !!st && st.box>=4; }
 export function countLearned(progress){ return Object.values(progress).filter(st=>st&&st.box>=4).length; }
 
@@ -99,15 +107,16 @@ export function dueCount(items, progress, levels){
 }
 
 /* ===== Generator cwiczen ===== */
-export function makeExercise(item, pool){
+export function makeExercise(item, pool, box){
+  const b=box||0;
   const words=String(item.gr||"").trim().split(/\s+/);
   const multi=words.length>=3;
-  /* dobierz typ — od rozpoznawania (latwo) do produkcji (trudniej), z odrobina losowosci */
-  const kinds=[];
-  kinds.push("choose-pl","listen");
-  if(item.kind!=="number") kinds.push("choose-gr");
-  if(item.kind==="word"||item.kind==="number") kinds.push("type-gr");
-  if(item.kind==="phrase"&&multi) kinds.push("build","cloze");
+  /* Trudnosc rosnie z pudelkiem: nowe slowo = rozpoznawanie (latwiej zakodowac),
+     dojrzale = produkcja (zeby „opanowac" trzeba wyprodukowac). */
+  let kinds;
+  if(b<=0){ kinds=["choose-pl","listen"]; }
+  else if(b<3){ kinds=["choose-pl","listen"]; if(item.kind!=="number") kinds.push("choose-gr"); if(item.kind==="phrase"&&multi) kinds.push("cloze"); }
+  else { kinds=["type-gr"]; if(item.kind==="phrase"&&multi) kinds.push("build"); }
   const type=kinds[Math.floor(Math.random()*kinds.length)];
 
   if(type==="choose-pl"||type==="listen"){

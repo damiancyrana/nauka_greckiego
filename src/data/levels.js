@@ -18,6 +18,7 @@
 */
 import { a1Lessons, categories } from "./a1.js";
 import { a2Lessons, a2Dialogues, a2Readers } from "./a2.js";
+import { b1Lessons, b1Dialogues, b1Readers } from "./b1.js";
 
 export { categories };
 export { alphabet, digraphs, numbers, readingLevels, commonWordGroups } from "./shared.js";
@@ -25,7 +26,7 @@ export { alphabet, digraphs, numbers, readingLevels, commonWordGroups } from "./
 export const LEVELS = [
   { id:"A1", label:"Kurs A1 — podstawy",        lessons:a1Lessons },
   { id:"A2", label:"Rozdzial A2 — rozwiniecie", lessons:a2Lessons, dialogues:a2Dialogues, readers:a2Readers },
-  // { id:"B1", label:"Rozdzial B1", lessons:b1Lessons, dialogues:b1Dialogues, readers:b1Readers },
+  { id:"B1", label:"Rozdzial B1 — samodzielnosc", lessons:b1Lessons, dialogues:b1Dialogues, readers:b1Readers },
 ];
 
 /* Wszystkie lekcje z naniesionym znacznikiem poziomu (level) */

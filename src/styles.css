@@ -397,8 +397,18 @@ button{font-family:inherit}
   .home-main .llist{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start}
 }
 
-/* ===== Regulacja tempa wymowy ===== */
-.speed-ctl{display:inline-flex;align-items:center;gap:4px;padding:7px 11px;border-radius:100px;border:none;cursor:pointer;background:var(--accent-soft);color:var(--accent);font-family:var(--sans);font-size:13px;font-weight:700;white-space:nowrap}
-.speed-ctl:active{transform:scale(.95)}
+/* ===== Regulacja tempa wymowy (suwak) ===== */
+.speed-ctl{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:100px;background:var(--accent-soft);color:var(--accent);font-family:var(--sans);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+.speed-ctl input[type=range]{width:70px;height:4px;cursor:pointer;accent-color:currentColor}
+.speed-val{min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
 .hhdr .speed-ctl{background:rgba(255,255,255,.16);color:#fff}
 .lhdr .lback{margin-right:auto}
+
+/* ===== Dwa przyciski audio (zwykle ▶/⏹ + wolne 🐢/⏹) przy kazdej frazie ===== */
+.audio-grp{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
+.spk-slow{color:var(--note);background:rgba(180,115,46,.12)}
+.spk-slow:hover{background:rgba(180,115,46,.22)}
+.gt .spk,.ac .spk,.nc .spk{width:30px;height:30px}
+.ac .audio-grp,.nc .audio-grp{margin-top:6px}
+.ex-audio-grp{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.ex-audio-slow{color:var(--note)}

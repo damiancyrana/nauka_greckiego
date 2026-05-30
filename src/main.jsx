@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge } from "lucide-react";
+import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge, Square, Turtle } from "lucide-react";
 import { a2Lessons, a2Dialogues, a2Readers } from "./a2data.js";
 import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
 
@@ -1024,16 +1024,17 @@ function pickVoice(){
   }catch(e){ return null; }
 }
 
-/* tempo wymowy — domyslnie wolne, zapisywane w localStorage */
-const RATES = [0.5, 0.7, 0.85, 1.0];
+/* tempo „zwyklego" odtwarzania — suwak, domyslnie wolne, zapisywane w localStorage */
+function clampRate(r){ return Math.min(1.2, Math.max(0.5, r)); }
 function loadRate(){
-  try{ const r=parseFloat(localStorage.getItem("greek-rate")); return RATES.indexOf(r)>=0 ? r : 0.7; }
+  try{ const r=parseFloat(localStorage.getItem("greek-rate")); return isNaN(r) ? 0.7 : clampRate(r); }
   catch(e){ return 0.7; }
 }
 let _rate = loadRate();
-function setRate(r){ _rate=r; try{ localStorage.setItem("greek-rate", String(r)); }catch(e){} }
+function setRate(r){ _rate=clampRate(r); try{ localStorage.setItem("greek-rate", String(_rate)); }catch(e){} }
+const SLOW_RATE = 0.5;   /* staly „wolny" tryb dla przycisku 🐢 */
 
-function speak(text){
+function speak(text, rate, onend){
   try{
     if(!window.speechSynthesis || !text) return;
     window.speechSynthesis.cancel();
@@ -1041,22 +1042,44 @@ function speak(text){
     u.lang = "el-GR";
     if(!_elVoice) _elVoice = pickVoice();
     if(_elVoice) u.voice = _elVoice;
-    u.rate = _rate;
+    u.rate = rate || _rate;
+    if(onend) u.onend = onend;
     window.speechSynthesis.speak(u);
   }catch(e){}
 }
-function Speak({text,size}){
-  return <button className="spk" aria-label="Posluchaj wymowy" onClick={(e)=>{e.stopPropagation();speak(text);}}>
-    <Volume2 size={size||18} strokeWidth={2}/>
-  </button>;
+function stopSpeak(){ try{ window.speechSynthesis.cancel(); }catch(e){} }
+
+/* Para przyciskow audio przy KAZDEJ frazie: zwykle (▶/⏹) + wolne (🐢/⏹) */
+function Speak({text, size}){
+  const [mode,setMode]=useState(null);   /* null | "n" (normalnie) | "s" (wolno) */
+  const s = size || 18;
+  const play=(m, rate)=>{
+    stopSpeak();
+    if(mode===m){ setMode(null); return; }
+    setMode(m);
+    speak(text, rate, ()=>setMode(null));
+  };
+  return <span className="audio-grp" onClick={(e)=>e.stopPropagation()}>
+    <button className="spk" aria-label={mode==="n"?"Zatrzymaj":"Posluchaj"} title="Posluchaj"
+      onClick={(e)=>{e.stopPropagation();play("n", _rate);}}>
+      {mode==="n" ? <Square size={s-4} strokeWidth={2.5}/> : <Volume2 size={s} strokeWidth={2}/>}
+    </button>
+    <button className="spk spk-slow" aria-label={mode==="s"?"Zatrzymaj":"Posluchaj wolniej"} title="Wolniej"
+      onClick={(e)=>{e.stopPropagation();play("s", SLOW_RATE);}}>
+      {mode==="s" ? <Square size={s-5} strokeWidth={2.5}/> : <Turtle size={s-1} strokeWidth={2}/>}
+    </button>
+  </span>;
 }
-const RATE_LABEL = {0.5:"0.5×", 0.7:"0.7×", 0.85:"0.85×", 1:"1×"};
+
+/* Suwak globalnego tempa zwyklego odtwarzania */
 function SpeedControl(){
   const [r,setR]=useState(_rate);
-  const cycle=()=>{ const nr=RATES[(RATES.indexOf(r)+1)%RATES.length]; setRate(nr); setR(nr); };
-  return <button className="speed-ctl" onClick={cycle} title="Tempo wymowy" aria-label={"Tempo wymowy "+RATE_LABEL[r]+", kliknij aby zmienic"}>
-    <Gauge size={14}/> {RATE_LABEL[r]}
-  </button>;
+  const onChange=(e)=>{ const v=parseFloat(e.target.value); setRate(v); setR(v); };
+  return <label className="speed-ctl" title="Tempo zwyklego odtwarzania" onClick={(e)=>e.stopPropagation()}>
+    <Gauge size={14}/>
+    <input type="range" min="0.5" max="1.2" step="0.05" value={r} onChange={onChange} aria-label="Tempo wymowy"/>
+    <span className="speed-val">{r.toFixed(2)}×</span>
+  </label>;
 }
 
 /* ===== Karta z odkrywaniem tlumaczenia ===== */
@@ -1120,7 +1143,7 @@ function LettersBlock(){
               <div className="at">{l.tip}</div>
               <div className="ae"><span className="aeg" lang="el">{l.example}</span><span className="aer"><R t={l.exRom}/></span><span className="aep">{l.exPl}</span></div>
             </>}
-        <button className="spk spk-corner" aria-label="Posluchaj przyklad" onClick={(e)=>{e.stopPropagation();speak(l.example);}}><Volume2 size={15}/></button>
+        <Speak text={l.example} size={14}/>
       </div>
     ))}</div>
     <button className="dtog" onClick={()=>setShowDi(s=>!s)}>{showDi?"▾ Ukryj dwuznaki":"▸ Dwuznaki — WAZNE!"}</button>
@@ -1144,7 +1167,7 @@ function NumbersBlock(){
       onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle(i);}}}>
       <div className="nn">{n.n}</div>
       {open
-        ? <><div className="ng" lang="el">{n.gr}</div><div className="nr"><R t={n.rom}/></div><button className="spk spk-corner" aria-label="Posluchaj" onClick={(e)=>{e.stopPropagation();speak(n.gr);}}><Volume2 size={14}/></button></>
+        ? <><div className="ng" lang="el">{n.gr}</div><div className="nr"><R t={n.rom}/></div><Speak text={n.gr} size={13}/></>
         : <div className="nh">kliknij</div>}
     </div>;
   })}</div>;
@@ -1266,7 +1289,6 @@ function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onR
         </div>
         <div className="hhdr-r">
           {streak>0 && <span className="streak"><Flame size={15}/> {streak}</span>}
-          <SpeedControl/>
           <button className="darkbtn" onClick={toggleDark} aria-label="Tryb ciemny">{dark?<Sun size={18}/>:<Moon size={18}/>}</button>
         </div>
       </div>
@@ -1353,7 +1375,10 @@ function ExerciseCard({ex, onNext}){
     <div className="ex-q">{exLabel(ex.type)}</div>
     <div className="ex-prompt">
       {ex.type==="listen"
-        ? <button className="ex-audio" onClick={()=>speak(ex.audio)} aria-label="Posluchaj"><Volume2 size={30}/><span>Posluchaj</span></button>
+        ? <div className="ex-audio-grp">
+            <button className="ex-audio" onClick={()=>speak(ex.audio, _rate)} aria-label="Posluchaj"><Volume2 size={28}/><span>Posluchaj</span></button>
+            <button className="ex-audio ex-audio-slow" onClick={()=>speak(ex.audio, SLOW_RATE)} aria-label="Posluchaj wolniej"><Turtle size={26}/><span>Wolniej</span></button>
+          </div>
         : ex.type==="cloze"
           ? <div className="ex-gr" lang="el">{ex.masked}</div>
           : (ex.type==="choose-gr"||ex.type==="type-gr"||ex.type==="build")

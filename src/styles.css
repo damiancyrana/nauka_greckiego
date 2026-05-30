@@ -380,3 +380,19 @@ button{font-family:inherit}
 .speak-fail{background:rgba(220,38,38,.08);color:#dc2626}
 .rp-prompt{font-size:17px;color:var(--body);line-height:1.5;margin-bottom:14px;font-weight:500}
 .q-box{margin-bottom:12px}
+
+/* ===== Desktop: dwukolumnowy ekran glowny (panel + tresc) ===== */
+.home-main{min-width:0}
+@media(min-width:1024px){
+  .root{background:radial-gradient(900px 480px at 50% -5%, rgba(40,116,166,.07), transparent 60%), var(--bg)}
+  .home{max-width:1080px;display:grid;grid-template-columns:360px 1fr;gap:32px;align-items:start;padding:28px 24px 0}
+  .home>.hhdr{position:sticky;top:28px;border-radius:24px}
+  .home .sec-label{padding:0 4px 6px}
+  .home .sec-tog,.home .bonus-tog{width:100%;margin:14px 0 0}
+  .home .more-grid{padding:18px 0 4px}
+  .home .hfoot{text-align:left;padding:20px 4px 28px}
+}
+@media(min-width:1320px){
+  .home{max-width:1240px;grid-template-columns:380px 1fr}
+  .home-main .llist{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start}
+}

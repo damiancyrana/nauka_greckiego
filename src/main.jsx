@@ -1266,6 +1266,7 @@ function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onR
       </button>
     </header>
 
+    <div className="home-main">
     <div className="sec-label">Kurs A1 — podstawy</div>
     <div className="llist">{core.map(card)}</div>
 
@@ -1283,6 +1284,7 @@ function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onR
       <button className="more-tile" onClick={onStats}><BarChart3 size={20}/><span>Statystyki</span></button>
     </div>
     <footer className="hfoot">Καλή τύχη! · Ucz sie codziennie po kilka minut.</footer>
+    </div>
   </div>;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge, Square, Turtle } from "lucide-react";
 import { a2Lessons, a2Dialogues, a2Readers } from "./a2data.js";
 import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
@@ -1036,15 +1036,21 @@ const SLOW_RATE = 0.5;   /* staly „wolny" tryb dla przycisku 🐢 */
 
 function speak(text, rate, onend){
   try{
-    if(!window.speechSynthesis || !text) return;
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    if(!synth || !text) return;
     const u = new SpeechSynthesisUtterance(String(text));
     u.lang = "el-GR";
     if(!_elVoice) _elVoice = pickVoice();
     if(_elVoice) u.voice = _elVoice;
     u.rate = rate || _rate;
-    if(onend) u.onend = onend;
-    window.speechSynthesis.speak(u);
+    u.pitch = 1;
+    if(onend){ u.onend = onend; u.onerror = onend; }
+    const go = ()=>{ try{ synth.resume(); synth.speak(u); }catch(e){} };
+    /* Chrome po cancel() w tym samym takcie gubi ustawienia nowej wypowiedzi
+       (m.in. tempo). Gdy cos gra — anuluj i odpal z malym opoznieniem, by
+       nowa predkosc zostala faktycznie zastosowana. */
+    if(synth.speaking || synth.pending){ synth.cancel(); setTimeout(go, 90); }
+    else { go(); }
   }catch(e){}
 }
 function stopSpeak(){ try{ window.speechSynthesis.cancel(); }catch(e){} }
@@ -1052,12 +1058,13 @@ function stopSpeak(){ try{ window.speechSynthesis.cancel(); }catch(e){} }
 /* Para przyciskow audio przy KAZDEJ frazie: zwykle (▶/⏹) + wolne (🐢/⏹) */
 function Speak({text, size}){
   const [mode,setMode]=useState(null);   /* null | "n" (normalnie) | "s" (wolno) */
+  const tok = useRef(0);
   const s = size || 18;
   const play=(m, rate)=>{
-    stopSpeak();
-    if(mode===m){ setMode(null); return; }
+    if(mode===m){ stopSpeak(); setMode(null); return; }
+    const id = ++tok.current;
     setMode(m);
-    speak(text, rate, ()=>setMode(null));
+    speak(text, rate, ()=>{ if(tok.current===id) setMode(null); });
   };
   return <span className="audio-grp" onClick={(e)=>e.stopPropagation()}>
     <button className="spk" aria-label={mode==="n"?"Zatrzymaj":"Posluchaj"} title="Posluchaj"

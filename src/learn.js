@@ -23,26 +23,30 @@ function now(){ try{ return Date.now(); }catch(e){ return 0; } }
 const DAY=86400000;
 
 /* ===== Pula elementow nauki — jedno zrodlo prawdy dla SRS, cwiczen i slownika ===== */
-export function buildPool({categories, commonWordGroups, numbers, a2Lessons}){
+export function buildPool({lessons, categories, commonWordGroups, numbers}){
   const items=[];
+  /* Frazy tematyczne A1 (zrodlo dla sekcji "phrases" przez catIds) */
   (categories||[]).forEach(cat=>{
     (cat.phrases||[]).forEach((p,i)=>{
-      items.push({id:"p:"+cat.id+":"+i, gr:p.gr, rom:p.rom, pl:p.pl, note:p.note, kind:"phrase", tag:cat.id, level:"A1"});
+      items.push({id:"p:"+cat.id+":"+i, gr:p.gr, rom:p.rom, pl:p.pl, note:p.note, kind:"phrase", tag:cat.id, level:cat.level||"A1"});
     });
   });
+  /* Slownik najczestszych slow */
   (commonWordGroups||[]).forEach((g,gi)=>{
     (g.words||[]).forEach((w,wi)=>{
       items.push({id:"w:"+gi+":"+wi, gr:w.gr, rom:w.rom, pl:w.pl, kind:"word", tag:"top", level:"A1"});
     });
   });
+  /* Liczby */
   (numbers||[]).forEach((n,i)=>{
     items.push({id:"n:"+i, gr:n.gr, rom:n.rom, pl:String(n.n), kind:"number", tag:"num", level:"A1"});
   });
-  (a2Lessons||[]).forEach(les=>{
+  /* Slowa/zwroty wbudowane w lekcje DOWOLNEGO poziomu (sekcje type:"words") */
+  (lessons||[]).forEach(les=>{
     (les.sections||[]).forEach((s,si)=>{
       if(s.type==="words"||s.type==="phrases"){
         (s.items||[]).forEach((w,wi)=>{
-          items.push({id:"a2:"+les.id+":"+si+":"+wi, gr:w.gr, rom:w.rom, pl:w.pl, note:w.note, kind:w.gr&&w.gr.indexOf(" ")>0?"phrase":"word", tag:"a2-"+les.id, level:"A2"});
+          items.push({id:"lw:"+les.id+":"+si+":"+wi, gr:w.gr, rom:w.rom, pl:w.pl, note:w.note, kind:(w.gr&&w.gr.indexOf(" ")>0)?"phrase":"word", tag:"l"+les.id, level:les.level||"A1"});
         });
       }
     });
@@ -77,9 +81,8 @@ export function buildSession(items, progress, opts){
   const o=opts||{};
   const maxNew=o.maxNew||8;
   const maxReview=o.maxReview||14;
-  const allowedLevels=o.levels||["A1","A2"];
   const t=now();
-  const pool=items.filter(it=>allowedLevels.indexOf(it.level)>=0);
+  const pool = o.levels ? items.filter(it=>o.levels.indexOf(it.level)>=0) : items;
   const due=[]; const fresh=[];
   pool.forEach(it=>{
     const st=progress[it.id];
@@ -91,8 +94,8 @@ export function buildSession(items, progress, opts){
   return shuffle(session);
 }
 export function dueCount(items, progress, levels){
-  const t=now(); const allow=levels||["A1","A2"];
-  return items.filter(it=>allow.indexOf(it.level)>=0 && progress[it.id]&&progress[it.id].seen&&progress[it.id].due<=t).length;
+  const t=now();
+  return items.filter(it=>(!levels||levels.indexOf(it.level)>=0) && progress[it.id]&&progress[it.id].seen&&progress[it.id].due<=t).length;
 }
 
 /* ===== Generator cwiczen ===== */

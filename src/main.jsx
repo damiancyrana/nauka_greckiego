@@ -20,7 +20,7 @@ function R({t}){
 /* ===== AUDIO: Web Speech API (el-GR) ===== */
 let _elVoice = null;
 /* preferuj zenski grecki glos (np. Apple „Melina"), unikaj znanych meskich */
-const _FEMALE = /melina|female|woman|γυναίκα|athina|αθηνά|maria|μαρία|eleni|ελένη|despina|δέσποινα|google/i;
+const _FEMALE = /melina|female|woman|γυναίκα|athina|αθηνά|maria|μαρία|eleni|ελένη|despina|δέσποινα/i;
 const _MALE = /\bmale\b|stefanos|στέφανος|nikos|νίκος|giorgos|γιώργος|dimitris|δημήτρης/i;
 function pickVoice(){
   try{
@@ -28,7 +28,11 @@ function pickVoice(){
     const vs = window.speechSynthesis.getVoices() || [];
     const el = vs.filter(v=>v.lang && v.lang.toLowerCase().indexOf("el")===0);
     if(!el.length) return null;
-    return el.find(v=>_FEMALE.test(v.name)) || el.find(v=>!_MALE.test(v.name)) || el[0];
+    /* WAZNE: glosy LOKALNE honoruja tempo (rate); glosy sieciowe (np. „Google
+       ελληνικά") w Chrome IGNORUJA rate — dlatego najpierw szukamy lokalnych. */
+    const local = el.filter(v=>v.localService);
+    const pref = local.length ? local : el;
+    return pref.find(v=>_FEMALE.test(v.name)) || pref.find(v=>!_MALE.test(v.name)) || pref[0];
   }catch(e){ return null; }
 }
 

@@ -179,6 +179,8 @@ export function recordSession(reviewed, correct){
   s.totalCorrect=(s.totalCorrect||0)+correct;
   s.history=s.history||{};
   s.history[today]=(s.history[today]||0)+reviewed;
+  s.sessions=(s.sessions||0)+1;
+  if(reviewed>0){ const a=correct/reviewed; s.flow=(s.flow==null)?a:(0.6*s.flow+0.4*a); }  /* EMA skutecznosci -> kalibracja trudnosci (flow) */
   try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){}
   return s;
 }
@@ -195,6 +197,16 @@ export function comprehension(pool, progress){
   const top=(pool||[]).filter(it=>it.tag==="top");
   const known=top.filter(it=>{ const st=progress[it.id]; return st && st.box>=3; }).length;
   return {known, total:top.length};
+}
+/* Adaptacyjna trudnosc (flow): po slabych sesjach mniej nowego (przywroc
+   kompetencje), po bardzo dobrych — wiecej nowego (utrzymaj wyzwanie). */
+export function adaptiveOpts(base, flow){
+  const o={...base};
+  if(flow!=null){
+    if(flow<0.6) o.maxNew=Math.max(2, Math.round(o.maxNew*0.5));
+    else if(flow>0.9) o.maxNew=o.maxNew+4;
+  }
+  return o;
 }
 
 /* ===== Rozpoznawanie mowy (Web Speech API) ===== */

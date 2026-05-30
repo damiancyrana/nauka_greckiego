@@ -447,3 +447,13 @@ button{font-family:inherit}
 .onb-min:active{transform:scale(.96)}
 .dark .onb-min{background:#111827}
 .onb-note{font-size:13px;color:var(--muted);margin-top:16px;line-height:1.5}
+
+/* slowa-kuzyni (mnemonika) */
+.cognate{font-size:14px;color:var(--accent);margin-top:8px;font-weight:600}
+.dark .cognate{color:#7fb2dd}
+/* banner instalacji PWA */
+.install-bar{background:var(--accent-soft);border-radius:14px;padding:14px 16px;margin:4px 0 10px;display:flex;flex-direction:column;gap:10px}
+.install-txt{font-size:14px;font-weight:600;color:var(--ink)}
+.install-acts{display:flex;gap:8px}
+.install-yes{flex:1;padding:10px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer}
+.install-no{padding:10px 14px;border:none;border-radius:10px;background:transparent;color:var(--muted);font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer}

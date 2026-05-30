@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge, Square, Turtle, Zap } from "lucide-react";
 import { LEVELS, allLessons, dialogues, readers, categories, commonWordGroups, numbers, alphabet, digraphs, readingLevels } from "./data/levels.js";
-import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, isProductive, loadStats, recordSession, sessionOpts, comprehension, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
+import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, isProductive, loadStats, recordSession, sessionOpts, adaptiveOpts, comprehension, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
 
 /* Romanizacja: akcentowane samogloski na czerwono (znacznik akcentu/wymowy) */
 const acMap = {'á':'a','é':'e','í':'i','ó':'o','ú':'u','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'};
@@ -101,6 +101,25 @@ function SpeedControl(){
   </label>;
 }
 
+/* Slowa-kuzyni (mnemonika): grecki -> polski/miedzynarodowy odpowiednik */
+const COGNATES_RAW = {
+  "τηλέφωνο":"jak „telefon”","μουσική":"jak „muzyka”","ιστορία":"jak „historia”",
+  "πρόβλημα":"jak „problem”","ιδέα":"jak „idea”","πρόγραμμα":"jak „program”",
+  "σύστημα":"jak „system”","θέατρο":"jak „teatr”","μουσείο":"jak „muzeum”",
+  "φωτογραφία":"jak „fotografia”","δημοκρατία":"jak „demokracja”","οικονομία":"jak „ekonomia”",
+  "πολιτική":"jak „polityka”","τεχνολογία":"jak „technologia”","ψυχολογία":"jak „psychologia”",
+  "φιλοσοφία":"jak „filozofia”","ενέργεια":"jak „energia”","χαρακτήρας":"jak „charakter”",
+  "γεωγραφία":"jak „geografia”","αλφάβητο":"jak „alfabet”","ταξί":"jak „taksówka”",
+  "καφές":"jak „café / kawa”","ραδιόφωνο":"jak radio","τηλεόραση":"tele- jak „telewizja”",
+  "κρίση":"jak „kryzys / crisis”","ίντερνετ":"jak „internet”",
+};
+const COGNATES = Object.fromEntries(Object.entries(COGNATES_RAW).map(([k,v])=>[normalizeGreek(k), v]));
+function cognateOf(gr){
+  if(!gr) return null;
+  const bare=String(gr).replace(/^(ο|η|το|οι|τα|ένα|μία|ένας)\s+/,"");
+  return COGNATES[normalizeGreek(bare)] || COGNATES[normalizeGreek(gr)] || null;
+}
+
 /* ===== Karta z odkrywaniem tlumaczenia ===== */
 function RevealCard({gr,rom,pl,note}){
   const [open,setOpen]=useState(false);
@@ -114,7 +133,7 @@ function RevealCard({gr,rom,pl,note}){
     </div>
     <div className="vr"><R t={rom}/></div>
     {open
-      ? <><div className="vp">{pl}</div>{note&&<span className="vnote">{note}</span>}</>
+      ? <><div className="vp">{pl}</div>{cognateOf(gr)&&<div className="cognate">💡 {cognateOf(gr)}</div>}{note&&<span className="vnote">{note}</span>}</>
       : <div className="vh">▸ pokaz tlumaczenie</div>}
   </div>;
 }
@@ -246,7 +265,7 @@ function DictWord({w}){
     onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}}}>
     <div className="dword-top"><span className="dword-gr" lang="el">{w.gr}</span><Speak text={w.gr} size={14}/></div>
     {open
-      ? <><div className="dword-rom"><R t={w.rom}/></div><div className="dword-pl">{w.pl}</div></>
+      ? <><div className="dword-rom"><R t={w.rom}/></div><div className="dword-pl">{w.pl}</div>{cognateOf(w.gr)&&<div className="cognate">💡 {cognateOf(w.gr)}</div>}</>
       : <div className="dword-hint">▸</div>}
   </div>;
 }
@@ -277,8 +296,9 @@ function DictionaryView({onHome}){
 }
 
 /* ===== Ekran glowny — jedna sciezka ===== */
-function Home({done, srs, stats, pool, onOpen, onSession, onQuick, onDict, onDialogs, onReaders, onStats, dark, toggleDark}){
+function Home({done, srs, stats, pool, onOpen, onSession, onQuick, onDict, onDialogs, onReaders, onStats, canInstall, onInstall, dark, toggleDark}){
   const [open,setOpen]=useState({});
+  const [hideInstall,setHideInstall]=useState(()=>{ try{ return localStorage.getItem("greek-installdismiss")==="1"; }catch(e){ return false; } });
   const toggle=(k)=>setOpen(o=>({...o,[k]:!o[k]}));
   const core = allLessons.filter(l=>!l.bonus);
   const bonus = allLessons.filter(l=>l.bonus);
@@ -338,6 +358,13 @@ function Home({done, srs, stats, pool, onOpen, onSession, onQuick, onDict, onDia
     </header>
 
     <div className="home-main">
+    {canInstall && !hideInstall && <div className="install-bar">
+      <span className="install-txt">📲 Zainstaluj na ekranie glownym — wracaj jednym tapem</span>
+      <div className="install-acts">
+        <button className="install-yes" onClick={onInstall}>Zainstaluj</button>
+        <button className="install-no" onClick={()=>{ try{localStorage.setItem("greek-installdismiss","1");}catch(e){} setHideInstall(true); }}>Nie teraz</button>
+      </div>
+    </div>}
     {LEVELS.map((lvl,idx)=>{
       const items=lvl.lessons.filter(l=>!l.bonus);
       if(!items.length) return null;
@@ -721,6 +748,7 @@ export default function App(){
       return false;
     }catch(e){ return true; }
   });
+  const [installEvt,setInstallEvt]=useState(null);
   const [route,setRoute]=useState(()=>parseHash());
 
   useEffect(()=>{
@@ -738,6 +766,11 @@ export default function App(){
         window.speechSynthesis.onvoiceschanged=()=>{_elVoice=pickVoice();};
       }
     }catch(e){}
+  },[]);
+  useEffect(()=>{
+    const onBIP=(e)=>{ try{e.preventDefault();}catch(_){} setInstallEvt(e); };   /* przejmij prompt instalacji PWA na odpowiedni moment */
+    window.addEventListener("beforeinstallprompt", onBIP);
+    return ()=>window.removeEventListener("beforeinstallprompt", onBIP);
   },[]);
 
   const order = allLessons.map(l=>l.id);
@@ -766,13 +799,14 @@ export default function App(){
   const openReaders=()=>navigate({t:"readers"});
   const openReader=(id)=>navigate({t:"reader",id});
   const goHome=()=>navigate({t:"home"});
+  const doInstall=()=>{ const e=installEvt; if(e){ try{e.prompt();}catch(_){} setInstallEvt(null); } };
   const markDone=(id)=>setDone(prev=>{ const n=new Set(prev); n.add(id); return n; });
 
-  const homeEl = <Home done={done} srs={srs} stats={stats} pool={pool} onOpen={openLesson} onSession={openSession} onQuick={openQuick} onDict={openDict} onDialogs={openDialogs} onReaders={openReaders} onStats={openStats} dark={dark} toggleDark={()=>setDark(d=>!d)}/>;
+  const homeEl = <Home done={done} srs={srs} stats={stats} pool={pool} onOpen={openLesson} onSession={openSession} onQuick={openQuick} onDict={openDict} onDialogs={openDialogs} onReaders={openReaders} onStats={openStats} canInstall={!!installEvt} onInstall={doInstall} dark={dark} toggleDark={()=>setDark(d=>!d)}/>;
 
   let body;
   if(route.t==="dict") body = <DictionaryView onHome={goHome}/>;
-  else if(route.t==="session") body = <SessionView pool={pool} srs={srs} opts={sessionOpts(dailymin)} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
+  else if(route.t==="session") body = <SessionView pool={pool} srs={srs} opts={adaptiveOpts(sessionOpts(dailymin), stats.flow)} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
   else if(route.t==="quick") body = <SessionView pool={pool} srs={srs} opts={{maxNew:5,maxReview:5,limit:5}} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
   else if(route.t==="stats") body = <StatsView stats={stats} srs={srs} pool={pool} onHome={goHome}/>;
   else if(route.t==="dialogs") body = <DialoguesView onOpen={openDialog} onHome={goHome}/>;

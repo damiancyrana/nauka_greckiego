@@ -99,7 +99,7 @@ export function buildSession(items, progress, opts){
   });
   due.sort((a,b)=>(progress[a.id].due)-(progress[b.id].due));
   const session=due.slice(0,maxReview).concat(fresh.slice(0,maxNew));
-  return shuffle(session);
+  return shuffle(o.limit ? session.slice(0,o.limit) : session);
 }
 export function dueCount(items, progress, levels){
   const t=now();
@@ -163,12 +163,16 @@ export function loadStats(){
   try{ return JSON.parse(localStorage.getItem(STATS_KEY)||"null") || {streak:0,lastDay:null,totalReviews:0,totalCorrect:0,history:{}}; }
   catch(e){ return {streak:0,lastDay:null,totalReviews:0,totalCorrect:0,history:{}}; }
 }
+function dayOffset(n){ try{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }catch(e){ return null; } }
+function isoWeek(){ try{ const d=new Date(); const oj=new Date(d.getFullYear(),0,1); const w=Math.ceil((((d-oj)/86400000)+oj.getDay()+1)/7); return d.getFullYear()+"-W"+w; }catch(e){ return ""; } }
 export function recordSession(reviewed, correct){
   const s=loadStats();
   const today=todayStr();
   if(s.lastDay!==today){
-    const yest=(()=>{ try{ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }catch(e){ return null; } })();
-    s.streak = (s.lastDay===yest) ? (s.streak||0)+1 : 1;
+    const yest=dayOffset(-1), prev=dayOffset(-2), week=isoWeek();
+    if(s.lastDay===yest){ s.streak=(s.streak||0)+1; }
+    else if(s.lastDay===prev && s.restWeek!==week){ s.streak=(s.streak||0)+1; s.restWeek=week; }  /* dzien odpoczynku: 1 opuszczony dzien/tydzien wybaczony */
+    else { s.streak=1; }
     s.lastDay=today;
   }
   s.totalReviews=(s.totalReviews||0)+reviewed;
@@ -177,6 +181,20 @@ export function recordSession(reviewed, correct){
   s.history[today]=(s.history[today]||0)+reviewed;
   try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){}
   return s;
+}
+/* Rozmiar sesji wg dziennego celu uzytkownika (minuty) */
+export function sessionOpts(min){
+  const m=min||10;
+  if(m<=5) return {maxNew:4, maxReview:8};
+  if(m>=15) return {maxNew:12, maxReview:20};
+  return {maxNew:8, maxReview:14};
+}
+/* Miernik „ile rozumiem": ile z najczestszych slow (tag „top") jest juz
+   rozpoznawanych (box >= 3) */
+export function comprehension(pool, progress){
+  const top=(pool||[]).filter(it=>it.tag==="top");
+  const known=top.filter(it=>{ const st=progress[it.id]; return st && st.box>=3; }).length;
+  return {known, total:top.length};
 }
 
 /* ===== Rozpoznawanie mowy (Web Speech API) ===== */

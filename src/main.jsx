@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge, Square, Turtle } from "lucide-react";
+import { Volume2, Moon, Sun, ChevronLeft, ChevronRight, Check, Lock, Mic, BarChart3, MessageCircle, BookOpen, Flame, RotateCcw, Gauge, Square, Turtle, Zap } from "lucide-react";
 import { LEVELS, allLessons, dialogues, readers, categories, commonWordGroups, numbers, alphabet, digraphs, readingLevels } from "./data/levels.js";
-import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, isProductive, loadStats, recordSession, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
+import { buildPool, buildSession, makeExercise, checkAnswer, loadProgress, saveProgress, grade, isProductive, loadStats, recordSession, sessionOpts, comprehension, dueCount, countLearned, getRecognizer, normalizeGreek } from "./learn.js";
 
 /* Romanizacja: akcentowane samogloski na czerwono (znacznik akcentu/wymowy) */
 const acMap = {'á':'a','é':'e','í':'i','ó':'o','ú':'u','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U'};
@@ -277,7 +277,7 @@ function DictionaryView({onHome}){
 }
 
 /* ===== Ekran glowny — jedna sciezka ===== */
-function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onReaders, onStats, dark, toggleDark}){
+function Home({done, srs, stats, pool, onOpen, onSession, onQuick, onDict, onDialogs, onReaders, onStats, dark, toggleDark}){
   const [open,setOpen]=useState({});
   const toggle=(k)=>setOpen(o=>({...o,[k]:!o[k]}));
   const core = allLessons.filter(l=>!l.bonus);
@@ -287,6 +287,7 @@ function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onR
   const pct = core.length?Math.round(doneCount/core.length*100):0;
   const due = dueCount(pool, srs);
   const streak = (stats&&stats.streak)||0;
+  const comp = comprehension(pool, srs);
   const card=(l)=>{
     const isDone=done.has(l.id);
     const isCurrent=l.id===next.id && !isDone;
@@ -318,10 +319,15 @@ function Home({done, srs, stats, pool, onOpen, onSession, onDict, onDialogs, onR
         </div>
         <span className="session-cta-go"><RotateCcw size={20}/></span>
       </button>
+      <button className="quick-cta" onClick={onQuick}><Zap size={15}/> Szybka powtorka · 5 kart · ~60 s</button>
       <div className="hprogress">
         <div className="hprogress-bar"><span style={{width:pct+"%"}}/></div>
         <div className="hprogress-txt">Lekcje: {doneCount}/{core.length}</div>
       </div>
+      {comp.total>0 && <div className="comp-meter">
+        <div className="comp-bar"><span style={{width:Math.round(comp.known/comp.total*100)+"%"}}/></div>
+        <div className="comp-txt">Rozumiesz ~{comp.known} z {comp.total} najczestszych slow</div>
+      </div>}
       <button className="continue" onClick={()=>onOpen(next.id)}>
         <div className="continue-l">
           <div className="continue-k">{done.has(next.id)?"Powtorz":"Kontynuuj"}</div>
@@ -368,6 +374,7 @@ function parseHash(){
   try{
     const h = window.location.hash || "";
     if(/slownik/.test(h)) return {t:"dict"};
+    if(/quick/.test(h)) return {t:"quick"};
     if(/session/.test(h)) return {t:"session"};
     if(/stats/.test(h)) return {t:"stats"};
     let m=h.match(/dialog\/([a-z0-9]+)/i); if(m) return {t:"dialog", id:m[1]};
@@ -454,8 +461,8 @@ function ExerciseCard({ex, onNext}){
 
 function typedExercise(item, flag){ return { type:"type-gr", item, prompt:item.pl, hint:item.rom, answer:item.gr, [flag]:true }; }
 
-function SessionView({pool, srs, onFinish, onHome}){
-  const [work]=useState(()=>buildSession(pool, srs, {maxNew:8, maxReview:14}));
+function SessionView({pool, srs, opts, onFinish, onHome}){
+  const [work]=useState(()=>buildSession(pool, srs, opts||{maxNew:8, maxReview:14}));
   const [idx,setIdx]=useState(0);
   const [phase,setPhase]=useState("main");          /* "main" | "replay" */
   const [localSrs,setLocalSrs]=useState(srs);
@@ -653,6 +660,45 @@ function ReadersView({onOpen, onHome}){
   </div>;
 }
 
+/* ===== Onboarding: pierwszy sukces w ~90 s + cel uzytkownika ===== */
+const ONB_GOALS=[
+  {id:"travel",emoji:"✈️",label:"Podroze / wakacje"},
+  {id:"culture",emoji:"🏛️",label:"Kultura i film"},
+  {id:"people",emoji:"❤️",label:"Bliscy / znajomi"},
+  {id:"serious",emoji:"🎓",label:"Systematyczna nauka"},
+];
+function Onboarding({onDone}){
+  const [step,setStep]=useState(0);
+  const [shown,setShown]=useState(false);
+  const [goal,setGoal]=useState(null);
+  useEffect(()=>{ if(step===0){ const t=setTimeout(()=>speak("Γεια σου!"),400); return ()=>clearTimeout(t); } },[step]);
+  return <div className="onb">
+    <div className="onb-dots">{[0,1,2].map(i=><span key={i} className={"onb-dot"+(i<=step?" on":"")}/>)}</div>
+    {step===0 && <div className="onb-card">
+      <div className="onb-kicker">Twoje pierwsze greckie slowo</div>
+      <div className="onb-gr" lang="el">Γεια σου!</div>
+      <div className="onb-rom"><R t="Jia su"/></div>
+      <button className="ex-audio onb-audio" onClick={()=>speak("Γεια σου!")}><Volume2 size={26}/><span>Posluchaj</span></button>
+      {!shown
+        ? <button className="lnav-next onb-btn" onClick={()=>setShown(true)}>Pokaz tlumaczenie</button>
+        : <><div className="onb-pl">= Czesc! 🎉</div><div className="onb-ok">Brawo — juz umiesz przywitac sie po grecku.</div><button className="lnav-next onb-btn" onClick={()=>setStep(1)}>Dalej <ChevronRight size={18}/></button></>}
+    </div>}
+    {step===1 && <div className="onb-card">
+      <div className="onb-kicker">Po co uczysz sie greckiego?</div>
+      <div className="onb-goals">{ONB_GOALS.map(g=>(
+        <button key={g.id} className="onb-goal" onClick={()=>{ setGoal(g.id); setStep(2); }}><span className="onb-goal-e">{g.emoji}</span><span>{g.label}</span></button>
+      ))}</div>
+    </div>}
+    {step===2 && <div className="onb-card">
+      <div className="onb-kicker">Ile minut dziennie?</div>
+      <div className="onb-mins">{[5,10,15].map(m=>(
+        <button key={m} className="onb-min" onClick={()=>onDone(goal, m)}>{m} min</button>
+      ))}</div>
+      <div className="onb-note">Mozesz to zmienic pozniej. Krotka, codzienna nauka dziala najlepiej.</div>
+    </div>}
+  </div>;
+}
+
 export default function App(){
   const [dark,setDark]=useState(()=>{
     try{
@@ -667,6 +713,14 @@ export default function App(){
   const [srs,setSrs]=useState(()=>loadProgress());
   const [stats,setStats]=useState(()=>loadStats());
   const [pool]=useState(()=>buildPool({lessons: allLessons, categories, commonWordGroups, numbers}));
+  const [dailymin]=useState(()=>{ try{ return parseInt(localStorage.getItem("greek-dailymin"))||10; }catch(e){ return 10; } });
+  const [onboarded,setOnboarded]=useState(()=>{
+    try{
+      if(localStorage.getItem("greek-onboarded")==="1") return true;
+      if(localStorage.getItem("greek-srs")||localStorage.getItem("greek-done")) return true;   /* powracajacy uzytkownik — pomin */
+      return false;
+    }catch(e){ return true; }
+  });
   const [route,setRoute]=useState(()=>parseHash());
 
   useEffect(()=>{
@@ -693,6 +747,7 @@ export default function App(){
     if(r.t==="lesson") hash="#/lesson/"+r.id;
     else if(r.t==="dict") hash="#/slownik";
     else if(r.t==="session") hash="#/session";
+    else if(r.t==="quick") hash="#/quick";
     else if(r.t==="stats") hash="#/stats";
     else if(r.t==="dialogs") hash="#/dialogs";
     else if(r.t==="dialog") hash="#/dialog/"+r.id;
@@ -704,6 +759,7 @@ export default function App(){
   const openLesson=(id)=>navigate({t:"lesson",id});
   const openDict=()=>navigate({t:"dict"});
   const openSession=()=>navigate({t:"session"});
+  const openQuick=()=>navigate({t:"quick"});
   const openStats=()=>navigate({t:"stats"});
   const openDialogs=()=>navigate({t:"dialogs"});
   const openDialog=(id)=>navigate({t:"dialog",id});
@@ -712,11 +768,12 @@ export default function App(){
   const goHome=()=>navigate({t:"home"});
   const markDone=(id)=>setDone(prev=>{ const n=new Set(prev); n.add(id); return n; });
 
-  const homeEl = <Home done={done} srs={srs} stats={stats} pool={pool} onOpen={openLesson} onSession={openSession} onDict={openDict} onDialogs={openDialogs} onReaders={openReaders} onStats={openStats} dark={dark} toggleDark={()=>setDark(d=>!d)}/>;
+  const homeEl = <Home done={done} srs={srs} stats={stats} pool={pool} onOpen={openLesson} onSession={openSession} onQuick={openQuick} onDict={openDict} onDialogs={openDialogs} onReaders={openReaders} onStats={openStats} dark={dark} toggleDark={()=>setDark(d=>!d)}/>;
 
   let body;
   if(route.t==="dict") body = <DictionaryView onHome={goHome}/>;
-  else if(route.t==="session") body = <SessionView pool={pool} srs={srs} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
+  else if(route.t==="session") body = <SessionView pool={pool} srs={srs} opts={sessionOpts(dailymin)} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
+  else if(route.t==="quick") body = <SessionView pool={pool} srs={srs} opts={{maxNew:5,maxReview:5,limit:5}} onHome={goHome} onFinish={(ns,res)=>{ setSrs(ns); setStats(recordSession(res.reviewed,res.correct)); }}/>;
   else if(route.t==="stats") body = <StatsView stats={stats} srs={srs} pool={pool} onHome={goHome}/>;
   else if(route.t==="dialogs") body = <DialoguesView onOpen={openDialog} onHome={goHome}/>;
   else if(route.t==="dialog"){ const d=dialogues.find(x=>x.id===route.id); body = d?<DialogueView dialogue={d} onHome={goHome}/>:homeEl; }
@@ -739,6 +796,8 @@ export default function App(){
       />;
     }
   } else { body = homeEl; }
+
+  if(!onboarded) return <div className={"root"+(dark?" dark":"")}><Onboarding onDone={(g,m)=>{ try{ localStorage.setItem("greek-goal",g||""); localStorage.setItem("greek-dailymin",String(m||10)); localStorage.setItem("greek-onboarded","1"); }catch(e){} setOnboarded(true); }}/></div>;
 
   return <div className={"root"+(dark?" dark":"")}>{body}</div>;
 }
